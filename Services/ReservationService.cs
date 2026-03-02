@@ -16,6 +16,15 @@ namespace SportReservation.Services
             _db = db;
         }
 
+        // Vrátí rezervaci podle id (včetně navigačních vlastností)
+        public async Task<Reservation?> GetReservationAsync(Guid id)
+        {
+            return await _db.Reservations
+                .Include(r => r.User)
+                .Include(r => r.Facility)
+                .FirstOrDefaultAsync(r => r.Id == id);
+        }
+
         public async Task<Reservation> CreateReservationAsync(Guid userId, Guid facilityId, DateTime startAt, DateTime endAt)
         {
             // 1. Kontrola kolize – překrývající se aktivní rezervace
@@ -82,19 +91,27 @@ namespace SportReservation.Services
             return reservation;
         }
 
+        // Jednoduchá implementace zrušení rezervace
         public async Task CancelReservationAsync(Guid reservationId, Guid userId, bool isAdmin)
         {
-            var reservation = await _db.Reservations.FindAsync(reservationId);
+            var r = await _db.Reservations.FirstOrDefaultAsync(x => x.Id == reservationId);
+            if (r == null) throw new InvalidOperationException("Reservation not found.");
 
-            if (reservation == null)
-                throw new Exception("Rezervace nenalezena.");
+            if (!isAdmin && r.UserId != userId)
+                throw new UnauthorizedAccessException("User is not allowed to cancel this reservation.");
 
-            if (!isAdmin && reservation.UserId != userId)
-                throw new Exception("Nemáte oprávnění zrušit tuto rezervaci.");
+            r.CancelledAt = DateTime.UtcNow;
+            // pokud existuje enum s hodnotou Cancelled, použít ji
+            try
+            {
+                r.Status = ReservationStatus.Cancelled;
+            }
+            catch
+            {
+                // pokud enum neobsahuje Cancelled, ignorujeme přiřazení
+            }
 
-            reservation.Status = ReservationStatus.Cancelled;
-            reservation.CancelledAt = DateTime.UtcNow;
-
+            _db.Reservations.Update(r);
             await _db.SaveChangesAsync();
         }
     }

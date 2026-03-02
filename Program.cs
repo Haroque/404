@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using SportReservation.Data;        // AppDbContext
-using SportReservation.Services;    // ReservationService
+using SportReservation.Data;
+using SportReservation.Services;
 
 
 namespace SportReservation
@@ -14,33 +14,65 @@ namespace SportReservation
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            
             builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer("Data Source=sportreservation.db"));
+                options.UseSqlite("Data Source=sportreservation.db"));
 
             builder.Services.AddScoped<ReservationService>();
 
-            // Add services to the container.
-            builder.Services.AddControllersWithViews();
+
+
+            // REST API (JSON) - 
+            builder.Services.AddControllers()
+                .AddJsonOptions(opts =>
+                {
+                    opts.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+                });
+
+            // CORS – povolit frontend 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", policy =>
+                {
+                    policy.WithOrigins("http://localhost:3000") // adresa FE
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
+
+            // Swagger 
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (!app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment())
             {
-                app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+                app.UseDeveloperExceptionPage();
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
+            else
+            {
+                app.UseExceptionHandler("/error");
                 app.UseHsts();
             }
 
             app.UseHttpsRedirection();
+
+            // Pokud frontend do wwwroot:
+            app.UseStaticFiles();
+
             app.UseRouting();
+
+            app.UseCors("AllowFrontend");
 
             app.UseAuthorization();
 
-            app.MapStaticAssets();
-            app.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}")
-                .WithStaticAssets();
+            app.MapControllers();
+
+            // SPA fallback - pokud FE do wwwroot
+            app.MapFallbackToFile("index.html");
 
             app.Run();
         }
