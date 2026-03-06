@@ -19,5 +19,7 @@ Global
 		{76221FDA-8766-4CC4-B527-CE391EDBBFD8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{76221FDA-8766-4CC4-B527-CE391EDBBFD8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{76221FDA-8766-4CC4-B527-CE391EDBBFD8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C9CCD0E-6D47-4D88-8AAD-70DAE93E974E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C9CCD0E-6D47-4D88-8AAD-70DAE93E974E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 EndGlobal
