@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using SportReservation;
 using SportReservation.Data;
 using SportReservation.Middlewares;
 using SportReservation.Services;
