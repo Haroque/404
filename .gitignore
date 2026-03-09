@@ -3,5 +3,5 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
-sportreservations.db
+sportreservation.db**
 node_modules

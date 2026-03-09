@@ -68,4 +68,14 @@ app.MapFallbackToFile("index.html");
 app.MapControllers();
 app.UseRouting();
 
+if (args.Length > 0)
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        Cli.Run(args, scope).Wait();
+    }
+
+    return;
+}
+
 app.Run();
