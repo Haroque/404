@@ -109,6 +109,7 @@ public class ReservationService
         return reservation;
     }
 
+    
     // Jednoduchá implementace zrušení rezervace
     public async Task CancelReservationAsync(Guid reservationId, Guid userId, bool isAdmin)
     {
