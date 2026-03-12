@@ -21,6 +21,24 @@ public class ReservationService
             .Include(r => r.Facility)
             .FirstOrDefaultAsync(r => r.Id == id);
     }
+    //seznamu rezervací konkrétního člověka aktivní/neaktivní
+    public async Task<List<Reservation>> GetUserReservationsAsync(Guid userId, bool? active)
+    {
+        var q = _db.Reservations
+            .Include(r => r.User)
+            .Include(r => r.Facility)
+            .Where(r => r.UserId == userId);
+
+        if (active.HasValue)
+        {
+            if (active.Value)
+                q = q.Where(r => r.Status == ReservationStatus.Active);
+            else
+                q = q.Where(r => r.Status != ReservationStatus.Active);
+        }
+
+        return await q.ToListAsync();
+    }
 
     public async Task<Reservation> CreateReservationAsync(Guid userId, Guid facilityId, DateTime startAt,
         DateTime endAt)
@@ -102,14 +120,8 @@ public class ReservationService
 
         r.CancelledAt = DateTime.UtcNow;
         // pokud existuje enum s hodnotou Cancelled, použít ji
-        try
-        {
-            r.Status = ReservationStatus.Cancelled;
-        }
-        catch
-        {
-            // pokud enum neobsahuje Cancelled, ignorujeme přiřazení
-        }
+        r.Status = ReservationStatus.Cancelled;
+
 
         _db.Reservations.Update(r);
         await _db.SaveChangesAsync();
