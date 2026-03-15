@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SportReservation.Data;
 using SportReservation.Models;
@@ -11,7 +12,13 @@ public class AuthMiddleware(RequestDelegate next)
     {
         var path = context.Request.Path;
 
-        if (!path.StartsWithSegments("/api") || path.StartsWithSegments("/api/Public"))
+        if (!path.StartsWithSegments("/api"))
+        {
+            await next(context);
+            return;
+        }
+        
+        if (context.GetEndpoint()?.Metadata.GetMetadata<IAllowAnonymous>() != null)
         {
             await next(context);
             return;

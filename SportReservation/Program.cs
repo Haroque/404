@@ -61,6 +61,7 @@ else
     app.UseHsts();
 }
 
+app.UseRouting();
 app.UseMiddleware<AuthMiddleware>();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
@@ -70,7 +71,6 @@ app.UseStaticFiles();
 app.MapFallbackToFile("index.html");
 
 app.MapControllers();
-app.UseRouting();
 
 using (var scope = app.Services.CreateScope())
 {

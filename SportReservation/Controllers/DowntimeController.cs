@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportReservation.Data;
 using SportReservation.Middlewares;
@@ -11,6 +12,7 @@ namespace SportReservation.Controllers;
 public class DowntimeController(AppDbContext db) : ControllerBase
 {
     [HttpGet("facility/{facilityId:guid}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetForFacility(Guid facilityId)
     {
         var downtimes = await db.Downtimes
