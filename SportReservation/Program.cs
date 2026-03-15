@@ -12,6 +12,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=sportreservation.db")
 );
 
+builder.Services.AddScoped<FacilityService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<UserService>();
 
@@ -60,6 +61,7 @@ else
 }
 
 app.UseMiddleware<AuthMiddleware>();
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
 
 // SPA frontend in wwwroot
