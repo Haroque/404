@@ -13,6 +13,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 );
 
 builder.Services.AddScoped<FacilityService>();
+builder.Services.AddScoped<PriceListService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<UserService>();
 
