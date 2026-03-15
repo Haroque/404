@@ -21,6 +21,7 @@ public class ReservationService
             .Include(r => r.Facility)
             .FirstOrDefaultAsync(r => r.Id == id);
     }
+
     //seznamu rezervací konkrétního člověka aktivní/neaktivní
     public async Task<List<Reservation>> GetUserReservationsAsync(Guid userId, bool? active)
     {
@@ -51,7 +52,7 @@ public class ReservationService
             r.EndAt > startAt);
 
         if (collision)
-            throw new Exception("Sportoviště je v tomto čase již rezervováno.");
+            throw new BadHttpRequestException("already-reserved");
 
         // 2. Kontrola odstávky
         bool downtime = await _db.Downtimes.AnyAsync(d =>
@@ -60,7 +61,7 @@ public class ReservationService
             d.EndAt > startAt);
 
         if (downtime)
-            throw new Exception("Sportoviště je v tomto čase mimo provoz.");
+            throw new BadHttpRequestException("out-of-service");
 
         var facility = await _db.Facilities.FirstAsync(f => f.Id == facilityId);
 
@@ -72,7 +73,7 @@ public class ReservationService
             .FirstOrDefaultAsync();
 
         if (priceList == null)
-            throw new Exception("Pro sportoviště není nastaven ceník.");
+            throw new BadHttpRequestException("invalid-pricing");
 
         // 4. Sleva podle počtu předchozích rezervací (5/10/15 → 5/10/15%)
         int reservationCount = await _db.Reservations.CountAsync(r =>
@@ -108,16 +109,15 @@ public class ReservationService
         await _db.SaveChangesAsync();
         return reservation;
     }
-
     
     // Jednoduchá implementace zrušení rezervace
-    public async Task CancelReservationAsync(Guid reservationId, Guid userId, bool isAdmin)
+    public async Task CancelReservationAsync(Guid reservationId, User user)
     {
         var r = await _db.Reservations.FirstOrDefaultAsync(x => x.Id == reservationId);
-        if (r == null) throw new InvalidOperationException("Reservation not found.");
+        if (r == null) throw new BadHttpRequestException("not-found", StatusCodes.Status404NotFound);
 
-        if (!isAdmin && r.UserId != userId)
-            throw new UnauthorizedAccessException("User is not allowed to cancel this reservation.");
+        if (user.Role != UserRole.Admin && r.UserId != user.Id)
+            throw new BadHttpRequestException("forbidden", StatusCodes.Status403Forbidden);
 
         r.CancelledAt = DateTime.UtcNow;
         // pokud existuje enum s hodnotou Cancelled, použít ji

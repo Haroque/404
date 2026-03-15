@@ -64,11 +64,7 @@ public class ReservationsController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Cancel(Guid id)
     {
-        var lu = HttpContext.LoggedUser();
-        
-        bool isAdmin = lu.Role == UserRole.Admin;
-        
-        await _svc.CancelReservationAsync(id, lu.Id, isAdmin);
+        await _svc.CancelReservationAsync(id, HttpContext.LoggedUser());
         return NoContent();
     }
 }
