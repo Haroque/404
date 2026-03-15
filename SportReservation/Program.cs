@@ -12,6 +12,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=sportreservation.db")
 );
 
+builder.Services.AddScoped<FacilityService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<UserService>();
 
