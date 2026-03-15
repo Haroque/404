@@ -22,7 +22,7 @@ public class ReservationsController : ControllerBase
     {
         var r = await _svc.GetReservationAsync(id);
         if (r == null) return NotFound();
-        return Ok(r);
+        return Ok(r.ToDto());
     }
     
     // Nový endpoint: všechny rezervace přihlášeného uživatele, volitelně filtrovat aktivní/neaktivní
@@ -31,7 +31,10 @@ public class ReservationsController : ControllerBase
     {
         var lu = HttpContext.LoggedUser();
         var list = await _svc.GetUserReservationsAsync(lu.Id, active);
-        return Ok(list);
+        
+        var dtos = list.Select(r => r.ToDto()); 
+        
+        return Ok(dtos);
     }
     
     
@@ -57,7 +60,7 @@ public class ReservationsController : ControllerBase
 
         
         var res = await _svc.CreateReservationAsync(effectiveUserId, dto.FacilityId, dto.StartAt, dto.EndAt);
-        return CreatedAtAction(nameof(Get), new { id = res.Id }, res);
+        return CreatedAtAction(nameof(Get), new { id = res.Id }, res.ToDto());
     }
 
     // nebere údaje o uživateli v query; používá přihlášeného uživatele
