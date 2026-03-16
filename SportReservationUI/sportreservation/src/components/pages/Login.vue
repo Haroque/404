@@ -18,10 +18,49 @@ defineProps<{
     </header>
 
     <main>
+        <form>
+            <input class="input-textbox" type="email" placeholder="E-mail" />
+            <input class="input-textbox" type="password" placeholder="Heslo" />
+            <input class="input-submit" type="submit" value="Přihlásit se"/>
+        </form>
     </main>
 </template>
 
 <style scoped>
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+.input-textbox {
+    padding: 0.6rem 1rem;
+    font-size: 1.0rem;
+    border-radius: 0.5rem;
+    outline: none;
+    border: none;
+    transition-duration: 100ms;
+}
+.input-textbox:hover {
+    background-color: var(--vt-c-white-mute);
+}
+.input-textbox:focus {
+    background-color: var(--vt-c-white-mute);
+}
+.input-submit {
+    padding: 0.6rem 1rem;
+    font-size: 1.0rem;
+    background-color: var(--vt-c-yellow);
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    transition-duration: 100ms;
+    cursor: pointer;
+}
+.input-submit:hover {
+    background-color: var(--vt-c-yellow-light);
+}
 h1 {
     color: var(--vt-c-white-mute);
 }
