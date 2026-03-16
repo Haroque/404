@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportReservation.Data;
 using SportReservation.Middlewares;
@@ -11,6 +12,7 @@ namespace SportReservation.Controllers;
 public class DowntimeController(AppDbContext db) : ControllerBase
 {
     [HttpGet("facility/{facilityId:guid}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetForFacility(Guid facilityId)
     {
         var downtimes = await db.Downtimes
@@ -26,7 +28,7 @@ public class DowntimeController(AppDbContext db) : ControllerBase
     {
         if (HttpContext.LoggedUser().Role != UserRole.Admin)
         {
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
         }
 
         if (body.StartAt >= body.EndAt)
@@ -60,7 +62,7 @@ public class DowntimeController(AppDbContext db) : ControllerBase
     {
         if (HttpContext.LoggedUser().Role != UserRole.Admin)
         {
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
         }
 
         var downtime = await db.Downtimes.FindAsync(id);
@@ -96,7 +98,7 @@ public class DowntimeController(AppDbContext db) : ControllerBase
     {
         if (HttpContext.LoggedUser().Role != UserRole.Admin)
         {
-            return Forbid();
+            throw new BadHttpRequestException("forbidden", StatusCodes.Status403Forbidden);
         }
 
         var downtime = await db.Downtimes.FindAsync(id);

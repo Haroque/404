@@ -14,7 +14,7 @@ public class FacilityController(FacilityService facilityService) : ControllerBas
     {
         if (HttpContext.LoggedUser().Role != UserRole.Admin)
         {
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
         }
 
         var facility = await facilityService.Create(dto);
@@ -26,7 +26,7 @@ public class FacilityController(FacilityService facilityService) : ControllerBas
     {
         if (HttpContext.LoggedUser().Role != UserRole.Admin)
         {
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
         }
 
         var type = await facilityService.CreateType(dto);

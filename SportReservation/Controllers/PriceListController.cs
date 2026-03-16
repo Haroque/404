@@ -14,7 +14,7 @@ public class PriceListController(PriceListService priceService) : ControllerBase
     {
         if (HttpContext.LoggedUser().Role != UserRole.Admin)
         {
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
         }
 
         var price = await priceService.Create(dto);
