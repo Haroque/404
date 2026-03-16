@@ -14,6 +14,11 @@ public record ReservationDto(
     DateTime? CancelledAt
 );
 
+public record AnonymousReservationDto(
+    DateTime StartAt,
+    DateTime EndAt
+);
+
 //možná do budoucna ?
 public record UpdateReservationDto(
     DateTime? StartAt,
@@ -37,6 +42,14 @@ public static class ReservationDtoExtensions
             FinalPrice: r.FinalPrice,
             CreatedAt: r.CreatedAt,
             CancelledAt: r.CancelledAt
+        );
+    }
+
+    public static AnonymousReservationDto ToAnonymousDto(this Reservation reservation)
+    {
+        return new AnonymousReservationDto(
+            reservation.StartAt,
+            reservation.EndAt
         );
     }
 }
