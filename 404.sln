@@ -1,5 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.4.11519.219 insiders
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SportReservation", "SportReservation\SportReservation.csproj", "{1C9CCD0E-6D47-4D88-8AAD-70DAE93E974E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C348945A-5070-427B-B548-7F85D8CA3760}"
@@ -15,11 +18,19 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1C9CCD0E-6D47-4D88-8AAD-70DAE93E974E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C9CCD0E-6D47-4D88-8AAD-70DAE93E974E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C9CCD0E-6D47-4D88-8AAD-70DAE93E974E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C9CCD0E-6D47-4D88-8AAD-70DAE93E974E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{76221FDA-8766-4CC4-B527-CE391EDBBFD8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{76221FDA-8766-4CC4-B527-CE391EDBBFD8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{76221FDA-8766-4CC4-B527-CE391EDBBFD8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{76221FDA-8766-4CC4-B527-CE391EDBBFD8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1C9CCD0E-6D47-4D88-8AAD-70DAE93E974E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1C9CCD0E-6D47-4D88-8AAD-70DAE93E974E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {28AFC77E-BBB3-4C0B-A28A-7333B6FA8570}
 	EndGlobalSection
 EndGlobal

@@ -1,6 +1,10 @@
-﻿using SportReservation.Controllers;
-
 namespace SportReservation.Models;
+
+public record FacilityTypeDto(
+    Guid Id,
+    string Name,
+    string? Description
+);
 
 public record FacilityDto(
     Guid Id,
@@ -14,12 +18,15 @@ public record FacilityDto(
 public record FacilityComplexDto(
     Guid Id,
     string Name,
-    FacilityTypeDto Type,
     int Capacity,
     bool IsActive,
     DateTime CreatedAt,
-    IEnumerable<DowntimeDto> DownTimes,
-    IEnumerable<AnonymousReservationDto> ActiveReservations
+    FacilityTypeDto Type
+);
+
+public record FacilityPaginatedDto(
+    int TotalPages,
+    IEnumerable<FacilityComplexDto> Items
 );
 
 public record FacilityCreateDto(
@@ -29,35 +36,57 @@ public record FacilityCreateDto(
     bool IsActive
 );
 
+public record FacilityPatchDto(
+    Guid Id,
+    string? Name,
+    Guid? TypeId,
+    int? Capacity,
+    bool? IsActive
+);
+
+public record FacilityTypeCreateDto(
+    string Name,
+    string? Description
+);
+
+public record FacilityTypePatchDto(
+    Guid Id,
+    string? Name,
+    string? Description
+);
+
 public static class FacilityDtoExtensions
 {
+    public static FacilityTypeDto ToDto(this FacilityType type)
+    {
+        return new FacilityTypeDto(
+            Id: type.Id,
+            Name: type.Name,
+            Description: type.Description
+        );
+    }
+
     public static FacilityDto ToDto(this Facility facility)
     {
         return new FacilityDto(
-            facility.Id,
-            facility.Name,
-            facility.TypeId,
-            facility.Capacity,
-            facility.IsActive,
-            facility.CreatedAt
+            Id: facility.Id,
+            Name: facility.Name,
+            TypeId: facility.TypeId,
+            Capacity: facility.Capacity,
+            IsActive: facility.IsActive,
+            CreatedAt: facility.CreatedAt
         );
     }
 
     public static FacilityComplexDto ToComplexDto(this Facility facility)
     {
-        var now = DateTime.Now;
-
         return new FacilityComplexDto(
-            facility.Id,
-            facility.Name,
-            facility.Type.ToDto(),
-            facility.Capacity,
-            facility.IsActive,
-            facility.CreatedAt,
-            facility.Downtimes.Select(x => x.ToDto()),
-            facility.Reservations
-                .Where(x => x.StartAt >= now && x.EndAt <= now)
-                .Select(x => x.ToAnonymousDto())
+            Id: facility.Id,
+            Name: facility.Name,
+            Capacity: facility.Capacity,
+            IsActive: facility.IsActive,
+            CreatedAt: facility.CreatedAt,
+            Type: facility.Type.ToDto()
         );
     }
 }
