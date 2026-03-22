@@ -13,7 +13,7 @@ public class FacilityTypeController(FacilityService facilityService) : Controlle
     public async Task<IActionResult> GetAll()
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
 
         var types = await facilityService.GetTypesAsync();
         return Ok(types);
@@ -23,7 +23,7 @@ public class FacilityTypeController(FacilityService facilityService) : Controlle
     public async Task<IActionResult> Create([FromBody] FacilityTypeCreateDto body)
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
 
         var type = await facilityService.CreateTypeAsync(body);
         return Ok(type);
@@ -34,7 +34,7 @@ public class FacilityTypeController(FacilityService facilityService) : Controlle
     public async Task<IActionResult> Patch([FromBody] FacilityTypePatchDto body)
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
 
         var type = await facilityService.PatchTypeAsync(body);
 
@@ -44,13 +44,11 @@ public class FacilityTypeController(FacilityService facilityService) : Controlle
         return Ok(type);
     }
 
-
-
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
 
         var deleted = await facilityService.DeleteTypeAsync(id);
 
