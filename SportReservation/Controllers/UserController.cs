@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SportReservation.Data;
 using SportReservation.Middlewares;
 using SportReservation.Models;
@@ -12,15 +13,33 @@ namespace SportReservation.Controllers;
 public class UserController(AppDbContext db, UserService userService) : ControllerBase
 {
     /// <summary>
+    /// Returns all users
+    /// </summary>
+    /// <returns>User entities</returns>
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        if (HttpContext.LoggedUser().Role != UserRole.Admin)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
+        }
+
+        return Ok(await db.Users
+            .Select(it => it.ToDto())
+            .ToListAsync()
+        );
+    }
+
+    /// <summary>
     /// Returns current logged user
     /// </summary>
     /// <returns>User entity</returns>
-    [HttpGet]
+    [HttpGet("Self")]
     public IActionResult Self()
     {
         return Ok(HttpContext.LoggedUser().ToDto());
     }
-    
+
     /// <summary>
     /// Registers new user
     /// </summary>
@@ -34,10 +53,27 @@ public class UserController(AppDbContext db, UserService userService) : Controll
         return Ok(user.ToDto());
     }
 
+    /// <summary>
+    /// Updates user information
+    /// </summary>
+    /// <param name="patch">update data</param>
+    /// <returns>Updated user</returns>
     [HttpPatch]
     public async Task<IActionResult> Update([FromBody] UserPatchDto patch)
     {
         var user = await userService.Update(HttpContext.LoggedUser(), patch);
         return Ok(user.ToDto());
+    }
+
+    /// <summary>
+    /// Try to delete user
+    /// </summary>
+    /// <param name="id">user id</param>
+    /// <returns>nothing</returns>
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        await userService.Delete(HttpContext.LoggedUser(), id);
+        return Ok();
     }
 }
