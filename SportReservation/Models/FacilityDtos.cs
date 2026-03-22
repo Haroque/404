@@ -1,4 +1,6 @@
-﻿namespace SportReservation.Models;
+﻿using SportReservation.Controllers;
+
+namespace SportReservation.Models;
 
 public record FacilityDto(
     Guid Id,
@@ -7,6 +9,17 @@ public record FacilityDto(
     int Capacity,
     bool IsActive,
     DateTime CreatedAt
+);
+
+public record FacilityComplexDto(
+    Guid Id,
+    string Name,
+    FacilityTypeDto Type,
+    int Capacity,
+    bool IsActive,
+    DateTime CreatedAt,
+    IEnumerable<DowntimeDto> DownTimes,
+    IEnumerable<AnonymousReservationDto> ActiveReservations
 );
 
 public record FacilityCreateDto(
@@ -27,6 +40,24 @@ public static class FacilityDtoExtensions
             facility.Capacity,
             facility.IsActive,
             facility.CreatedAt
+        );
+    }
+
+    public static FacilityComplexDto ToComplexDto(this Facility facility)
+    {
+        var now = DateTime.Now;
+
+        return new FacilityComplexDto(
+            facility.Id,
+            facility.Name,
+            facility.Type.ToDto(),
+            facility.Capacity,
+            facility.IsActive,
+            facility.CreatedAt,
+            facility.Downtimes.Select(x => x.ToDto()),
+            facility.Reservations
+                .Where(x => x.StartAt >= now && x.EndAt <= now)
+                .Select(x => x.ToAnonymousDto())
         );
     }
 }

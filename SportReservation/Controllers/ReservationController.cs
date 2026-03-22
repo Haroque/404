@@ -54,7 +54,7 @@ public class ReservationsController : ControllerBase
         {
             // jenom admin 
             if (lu.Role != UserRole.Admin)
-                return Forbid();
+                return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
             effectiveUserId = dto.UserId.Value;
         }
 
