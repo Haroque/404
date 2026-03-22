@@ -11,9 +11,10 @@ public class PriceListController(PriceListService priceService) : ControllerBase
 {
     private void EnsureAdmin()
     {
-        if (HttpContext.LoggedUser().Role != UserRole.Admin)
+        var lu = HttpContext.LoggedUser();
+        if (lu.Role != UserRole.Admin)
         {
-            throw new UnauthorizedAccessException("Only admin can manage the prices"); //forbid nejel -> asi nejlepší ? 
+            throw new BadHttpRequestException("forbidden", StatusCodes.Status403Forbidden);
         }
     }
     

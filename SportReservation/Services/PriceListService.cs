@@ -27,6 +27,7 @@ public class PriceListService(AppDbContext db)
         
         var price = new PriceList
         {
+            Id = Guid.NewGuid(),
             FacilityTypeId = dto.FacilityTypeId,
             ValidFrom = dto.ValidFrom,
             ValidTo = dto.ValidTo,
@@ -40,14 +41,15 @@ public class PriceListService(AppDbContext db)
     public async Task<PriceList> Update(Guid id, PriceListUpdateDto dto)
     {
         var price = await db.PriceLists.FindAsync(id) 
-                    ?? throw new KeyNotFoundException("Price list were not found");
-
-        // Určení nových časů (pokud v DTO nejsou, zůstávají původní)
+                    ?? throw new BadHttpRequestException("pricelist-not-found", StatusCodes.Status404NotFound);
+//možná KeyNotFoundException ??
+        
+        
         var newFrom = dto.ValidFrom ?? price.ValidFrom;
         var newTo = dto.ValidTo ?? price.ValidTo;
 
-        // byla změna -> validace
-        if (dto.ValidFrom != null || dto.ValidTo != null)
+        
+        if (dto.ValidFrom != null || dto.ValidTo != null) // byla změna ? -> validace
         {
             await ValidateOverlap(price.FacilityTypeId, newFrom, newTo, id);
         }
@@ -64,13 +66,13 @@ public class PriceListService(AppDbContext db)
     public async Task Delete(Guid id)
     {
         var price = await db.PriceLists.FindAsync(id) 
-                    ?? throw new KeyNotFoundException("Price list were not found");
-        
+                    ?? throw new BadHttpRequestException("pricelist-not-found", StatusCodes.Status404NotFound);
+//možná KeyNotFoundException ??
         
         //  ValidTo null nelze smazat
         if (price.ValidTo == null || price.ValidTo > DateTime.Now)
         {
-            throw new InvalidOperationException("Cannot delete price list");
+            throw new BadHttpRequestException("cannot-delete-active-or-future-pricing");
         }
 
         db.PriceLists.Remove(price);
@@ -81,7 +83,7 @@ public class PriceListService(AppDbContext db)
     {
         if (to != null && from >= to)
         {
-            throw new InvalidOperationException("The start of validity must be before the end");
+            throw new BadHttpRequestException("invalid-date-range");
         }
         
         var hasOverlap = await db.PriceLists.AnyAsync(p =>
@@ -92,7 +94,7 @@ public class PriceListService(AppDbContext db)
 
         if (hasOverlap)
         {
-            throw new InvalidOperationException("The price list overlaps with another existing price list in time");
+            throw new BadHttpRequestException("pricing-overlap");
         }
     }
 }
