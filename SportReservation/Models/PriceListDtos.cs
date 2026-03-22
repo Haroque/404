@@ -15,6 +15,13 @@ public record PriceListCreateDto(
     decimal PricePerHour
 );
 
+//patch
+public record PriceListUpdateDto(
+    DateTime? ValidFrom,
+    DateTime? ValidTo,
+    decimal? PricePerHour
+);
+
 public static class PriceListDtoExtensions
 {
     public static PriceListDto ToDto(this PriceList type)
