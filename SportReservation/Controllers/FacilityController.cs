@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SportReservation.Data;
 using SportReservation.Middlewares;
 using SportReservation.Models;
 using SportReservation.Services;
@@ -10,45 +7,77 @@ namespace SportReservation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class FacilityController(AppDbContext db, FacilityService facilityService) : ControllerBase
+public class FacilityController(FacilityService facilityService) : ControllerBase
 {
     [HttpGet]
-    [AllowAnonymous] // chcou at to je public
-    public async Task<IActionResult> GetAll([FromQuery] int page)
+    public async Task<IActionResult> GetAll(
+        [FromQuery(Name = "page")] int page = 1,
+        [FromQuery(Name = "per_page")] int perPage = 10)
     {
-        // page dodelat
-        
-        return Ok(await db.Facilities
-            .Include(x => x.Type)
-            .Include(x => x.Type.PriceLists)
-            .Include(x => x.Downtimes)
-            .Include(x => x.Reservations)
-            .Select(x => x.ToComplexDto())
-            .ToListAsync()
-        );
+        var facilities = await facilityService.GetPagedAsync(page, perPage);
+        return Ok(facilities);
     }
+
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> Get(Guid id)
+    {
+        if (!IsAdmin())
+            return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
+
+        var facility = await facilityService.GetAsync(id);
+
+        if (facility == null)
+            return NotFound();
+
+        return Ok(facility.ToComplexDto());
+    }
+
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] FacilityCreateDto dto)
+    public async Task<IActionResult> Create([FromBody] FacilityCreateDto body)
     {
-        if (HttpContext.LoggedUser().Role != UserRole.Admin)
-        {
+        if (!IsAdmin())
             return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
-        }
 
-        var facility = await facilityService.Create(dto);
-        return Ok(facility.ToDto());
+        var facility = await facilityService.CreateAsync(body);
+
+        if (facility == null)
+            return NotFound();
+
+        return Ok(facility);
     }
 
-    [HttpPost("Type")]
-    public async Task<IActionResult> CreateType([FromBody] FacilityTypeCreateDto dto)
+    [HttpPatch]
+    public async Task<IActionResult> Patch([FromBody] FacilityPatchDto body)
     {
-        if (HttpContext.LoggedUser().Role != UserRole.Admin)
-        {
+        if (!IsAdmin())
             return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
-        }
 
-        var type = await facilityService.CreateType(dto);
-        return Ok(type.ToDto());
+        var facility = await facilityService.PatchAsync(body);
+
+        if (facility == null)
+            return NotFound();
+
+        return Ok(facility);
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        if (!IsAdmin())
+            return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
+
+        var deleted = await facilityService.DeleteAsync(id);
+
+        if (!deleted)
+            return NotFound();
+
+        return NoContent();
+    }
+
+    private bool IsAdmin()
+    {
+        return HttpContext.LoggedUser().Role == UserRole.Admin;
     }
 }
