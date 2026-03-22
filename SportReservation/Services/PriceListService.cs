@@ -24,7 +24,7 @@ public class PriceListService(AppDbContext db)
     {
         // Validace logiky a překryvů
         await ValidateOverlap(dto.FacilityTypeId, dto.ValidFrom, dto.ValidTo);
-        
+
         var price = new PriceList
         {
             Id = Guid.NewGuid(),
@@ -38,23 +38,20 @@ public class PriceListService(AppDbContext db)
         await db.SaveChangesAsync();
         return price;
     }
+
     public async Task<PriceList> Update(Guid id, PriceListUpdateDto dto)
     {
-        var price = await db.PriceLists.FindAsync(id) 
-                    ?? throw new BadHttpRequestException("pricelist-not-found", StatusCodes.Status404NotFound);
-//možná KeyNotFoundException ??
-        
-        
+        var price = await db.PriceLists.FindAsync(id) ??
+                    throw new BadHttpRequestException("pricelist-not-found", StatusCodes.Status404NotFound);
+
         var newFrom = dto.ValidFrom ?? price.ValidFrom;
         var newTo = dto.ValidTo ?? price.ValidTo;
 
-        
         if (dto.ValidFrom != null || dto.ValidTo != null) // byla změna ? -> validace
         {
             await ValidateOverlap(price.FacilityTypeId, newFrom, newTo, id);
         }
 
-        
         if (dto.PricePerHour.HasValue) price.PricePerHour = dto.PricePerHour.Value; //update
         price.ValidFrom = newFrom;
         price.ValidTo = newTo;
@@ -65,10 +62,9 @@ public class PriceListService(AppDbContext db)
 
     public async Task Delete(Guid id)
     {
-        var price = await db.PriceLists.FindAsync(id) 
+        var price = await db.PriceLists.FindAsync(id)
                     ?? throw new BadHttpRequestException("pricelist-not-found", StatusCodes.Status404NotFound);
-//možná KeyNotFoundException ??
-        
+
         //  ValidTo null nelze smazat
         if (price.ValidTo == null || price.ValidTo > DateTime.Now)
         {
@@ -85,7 +81,7 @@ public class PriceListService(AppDbContext db)
         {
             throw new BadHttpRequestException("invalid-date-range");
         }
-        
+
         var hasOverlap = await db.PriceLists.AnyAsync(p =>
             p.FacilityTypeId == facilityTypeId &&
             p.Id != excludeId &&
