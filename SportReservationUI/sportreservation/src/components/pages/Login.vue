@@ -1,10 +1,44 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import Splash from '../../assets/login_splash.jpg'
-defineProps<{
-}>()
+import { tryLogin } from '@/auth';
+import { useRouter } from '@/router';
+
+const error = ref("")
+const errorBar = ref(false)
+
+const email = ref("")
+const password = ref("")
+
+async function validate() {
+    if (email.value.length == 0) {
+        error.value = "Musíte uvést email"
+        errorBar.value = true
+        return
+    }
+    if (password.value.length == 0) {
+        error.value = "Musíte vyplnit heslo"
+        errorBar.value = true
+        return
+    }
+    if (await tryLogin(email.value, password.value)) {
+        await useRouter().push({ name: 'home' })
+        return
+    }
+    error.value = "Neplatný email nebo heslo"
+    errorBar.value = true
+}
+
 </script>
 
 <template>
+    <v-snackbar v-model="errorBar" :timeout="3000">
+        {{ error }}
+        <template v-slot:actions>
+            <v-btn variant="text" @click="errorBar = false">Zavřít</v-btn>
+        </template>
+    </v-snackbar>
+
     <img class="splash-image" :src="Splash" />
     <header>
         <div class="wrapper">
@@ -19,9 +53,9 @@ defineProps<{
 
     <main>
         <form>
-            <input class="input-textbox" type="email" placeholder="E-mail" />
-            <input class="input-textbox" type="password" placeholder="Heslo" />
-            <input class="input-submit" type="submit" value="Přihlásit se"/>
+            <input v-model="email" class="input-textbox" type="email" placeholder="E-mail" />
+            <input v-model="password" class="input-textbox" type="password" placeholder="Heslo" />
+            <input @click="validate()" class="input-submit" value="Přihlásit se"/>
         </form>
     </main>
 </template>
