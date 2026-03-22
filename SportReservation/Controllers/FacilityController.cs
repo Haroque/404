@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using SportReservation.Middlewares;
 using SportReservation.Models;
 using SportReservation.Services;

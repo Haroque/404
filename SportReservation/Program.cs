@@ -12,6 +12,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=sportreservation.db")
 );
 
+builder.Services.AddScoped<FacilityService>();
+builder.Services.AddScoped<PriceListService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<FacilityService>();
@@ -60,7 +62,9 @@ else
     app.UseHsts();
 }
 
+app.UseRouting();
 app.UseMiddleware<AuthMiddleware>();
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
 
 // SPA frontend in wwwroot
@@ -68,7 +72,6 @@ app.UseStaticFiles();
 app.MapFallbackToFile("index.html");
 
 app.MapControllers();
-app.UseRouting();
 
 using (var scope = app.Services.CreateScope())
 {

@@ -22,6 +22,25 @@ public class ReservationService
             .FirstOrDefaultAsync(r => r.Id == id);
     }
 
+    //seznamu rezervací konkrétního člověka aktivní/neaktivní
+    public async Task<List<Reservation>> GetUserReservationsAsync(Guid userId, bool? active)
+    {
+        var q = _db.Reservations
+            .Include(r => r.User)
+            .Include(r => r.Facility)
+            .Where(r => r.UserId == userId);
+
+        if (active.HasValue)
+        {
+            if (active.Value)
+                q = q.Where(r => r.Status == ReservationStatus.Active);
+            else
+                q = q.Where(r => r.Status != ReservationStatus.Active);
+        }
+
+        return await q.ToListAsync();
+    }
+
     public async Task<Reservation> CreateReservationAsync(Guid userId, Guid facilityId, DateTime startAt,
         DateTime endAt)
     {
@@ -33,7 +52,7 @@ public class ReservationService
             r.EndAt > startAt);
 
         if (collision)
-            throw new Exception("Sportoviště je v tomto čase již rezervováno.");
+            throw new BadHttpRequestException("already-reserved");
 
         // 2. Kontrola odstávky
         bool downtime = await _db.Downtimes.AnyAsync(d =>
@@ -42,7 +61,7 @@ public class ReservationService
             d.EndAt > startAt);
 
         if (downtime)
-            throw new Exception("Sportoviště je v tomto čase mimo provoz.");
+            throw new BadHttpRequestException("out-of-service");
 
         var facility = await _db.Facilities.FirstAsync(f => f.Id == facilityId);
 
@@ -54,7 +73,7 @@ public class ReservationService
             .FirstOrDefaultAsync();
 
         if (priceList == null)
-            throw new Exception("Pro sportoviště není nastaven ceník.");
+            throw new BadHttpRequestException("invalid-pricing");
 
         // 4. Sleva podle počtu předchozích rezervací (5/10/15 → 5/10/15%)
         int reservationCount = await _db.Reservations.CountAsync(r =>
@@ -90,26 +109,20 @@ public class ReservationService
         await _db.SaveChangesAsync();
         return reservation;
     }
-
+    
     // Jednoduchá implementace zrušení rezervace
-    public async Task CancelReservationAsync(Guid reservationId, Guid userId, bool isAdmin)
+    public async Task CancelReservationAsync(Guid reservationId, User user)
     {
         var r = await _db.Reservations.FirstOrDefaultAsync(x => x.Id == reservationId);
-        if (r == null) throw new InvalidOperationException("Reservation not found.");
+        if (r == null) throw new BadHttpRequestException("not-found", StatusCodes.Status404NotFound);
 
-        if (!isAdmin && r.UserId != userId)
-            throw new UnauthorizedAccessException("User is not allowed to cancel this reservation.");
+        if (user.Role != UserRole.Admin && r.UserId != user.Id)
+            throw new BadHttpRequestException("forbidden", StatusCodes.Status403Forbidden);
 
         r.CancelledAt = DateTime.UtcNow;
         // pokud existuje enum s hodnotou Cancelled, použít ji
-        try
-        {
-            r.Status = ReservationStatus.Cancelled;
-        }
-        catch
-        {
-            // pokud enum neobsahuje Cancelled, ignorujeme přiřazení
-        }
+        r.Status = ReservationStatus.Cancelled;
+
 
         _db.Reservations.Update(r);
         await _db.SaveChangesAsync();

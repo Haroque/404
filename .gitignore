@@ -7,3 +7,4 @@ sportreservation.db**
 node_modules
 .vs/
 .csproj.user
+.DS_Store

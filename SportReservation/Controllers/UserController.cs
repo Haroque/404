@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SportReservation.Data;
 using SportReservation.Middlewares;
 using SportReservation.Models;
@@ -19,18 +20,24 @@ public class UserController(AppDbContext db, UserService userService) : Controll
     {
         return Ok(HttpContext.LoggedUser().ToDto());
     }
+    
+    /// <summary>
+    /// Registers new user
+    /// </summary>
+    /// <param name="body">dto</param>
+    /// <returns>created user</returns>
+    [HttpPost]
+    [AllowAnonymous]
+    public async Task<IActionResult> Register([FromBody] RegisterDto body)
+    {
+        var user = await userService.Register(body, UserRole.User);
+        return Ok(user.ToDto());
+    }
 
     [HttpPatch]
     public async Task<IActionResult> Update([FromBody] UserPatchDto patch)
     {
-        var user = await db.Users.FindAsync(patch.Id);
-
-        if (user == null)
-        {
-            return NotFound();
-        }
-
-        await userService.Update(user, patch);
+        var user = await userService.Update(HttpContext.LoggedUser(), patch);
         return Ok(user.ToDto());
     }
 }

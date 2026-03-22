@@ -1,4 +1,4 @@
-﻿namespace SportReservation.Models;
+namespace SportReservation.Models;
 
 public record FacilityTypeDto(
     Guid Id,
