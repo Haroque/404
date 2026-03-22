@@ -14,6 +14,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<FacilityService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(opts => { opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });

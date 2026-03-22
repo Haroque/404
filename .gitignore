@@ -5,3 +5,5 @@ riderModule.iml
 /_ReSharper.Caches/
 sportreservation.db**
 node_modules
+.vs/
+.csproj.user
