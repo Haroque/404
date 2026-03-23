@@ -37,7 +37,7 @@ public class UserService(AppDbContext db)
 
     public async Task<User> Update(User invoker, UserPatchDto patch)
     {
-        var user = await GetUser(invoker, patch);
+        var user = await GetUser(invoker, patch.Id);
 
         if (patch.Email != null)
         {
@@ -81,9 +81,23 @@ public class UserService(AppDbContext db)
         return user;
     }
 
-    private async Task<User> GetUser(User invoker, UserPatchDto patch)
+    public async Task Delete(User invoker, Guid userId)
     {
-        if (patch.Id == null || patch.Id == invoker.Id)
+        var user = await GetUser(invoker, userId);
+
+        if (await db.Reservations.AnyAsync(it => it.UserId == user.Id))
+        {
+            throw new BadHttpRequestException("cant-delete");
+        }
+
+        db.Users.Remove(user);
+        await db.SaveChangesAsync();
+    }
+
+
+    private async Task<User> GetUser(User invoker, Guid? userId)
+    {
+        if (userId == null || userId == invoker.Id)
         {
             return invoker;
         }
@@ -93,7 +107,7 @@ public class UserService(AppDbContext db)
             throw new BadHttpRequestException("forbidden", StatusCodes.Status403Forbidden);
         }
 
-        var user = await db.Users.FirstOrDefaultAsync(it => it.Id == patch.Id);
+        var user = await db.Users.FirstOrDefaultAsync(it => it.Id == userId);
         return user ?? throw new BadHttpRequestException("not-found", StatusCodes.Status404NotFound);
     }
 }

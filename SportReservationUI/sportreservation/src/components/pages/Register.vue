@@ -1,18 +1,25 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import Splash from '../../assets/login_splash.jpg'
-import { tryLogin } from '@/auth';
+import { secureFetch } from '@/auth';
 import { useRouter } from '@/router';
 
 const error = ref("")
 const errorBar = ref(false)
 
 const email = ref("")
+const name = ref("")
 const password = ref("")
+const repeat = ref("")
 
 async function validate() {
     if (email.value.length == 0) {
         error.value = "Musíte uvést email"
+        errorBar.value = true
+        return
+    }
+    if (name.value.length == 0) {
+        error.value = "Musíte uvést jméno"
         errorBar.value = true
         return
     }
@@ -21,12 +28,39 @@ async function validate() {
         errorBar.value = true
         return
     }
-    if (await tryLogin(email.value, password.value)) {
-        await useRouter().push({ name: 'home' })
+    if (repeat.value.length == 0) {
+        error.value = "Musíte zopakovat heslo"
+        errorBar.value = true
         return
     }
-    error.value = "Neplatný email nebo heslo"
-    errorBar.value = true
+    if (password.value != repeat.value) {
+        error.value = "Helsa se neshodují"
+        errorBar.value = true
+        return
+    }
+    const res = await secureFetch("/User", {
+        method: 'POST',
+        body: JSON.stringify({
+            email: email.value,
+            fullName: name.value,
+            password: password.value
+        })
+    })
+    if (res.status != 200) {
+        switch (await res.text()) {
+            case "email-invalid":
+                error.value = "Neplatný email"
+                break
+            case "already-exists":
+                error.value = "Tento email u nás již je zaregistrovaný"
+                break
+            default:
+                error.value = "Nečekaná chyba, zkuste to později"
+        }
+        errorBar.value = true
+        return;
+    }
+    await useRouter().push({ name: 'login' })
 }
 
 </script>
@@ -54,9 +88,10 @@ async function validate() {
     <main>
         <form>
             <input v-model="email" class="input-textbox" type="email" placeholder="E-mail" />
+            <input v-model="name" class="input-textbox" type="text" placeholder="Jméno" />
             <input v-model="password" class="input-textbox" type="password" placeholder="Heslo" />
-            <input @click="validate()" class="input-submit" value="Přihlásit se"/>
-            <RouterLink :to="{ name: 'register' }">Nemáte účet?</RouterLink>
+            <input v-model="repeat" class="input-textbox" type="password" placeholder="Zopakuj Heslo" />
+            <input  @click="validate()" class="input-submit" value="Zaregistrovat se"/>
         </form>
     </main>
 </template>
