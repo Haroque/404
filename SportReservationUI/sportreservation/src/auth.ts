@@ -40,5 +40,9 @@ export async function secureFetch(path: string, data: any = {}): Promise<Respons
         await useRouter().push({name: 'login'})
         return res
     }
+    if (res.status == 403) {
+        await useRouter().push({name: 'home'})
+        return res
+    }
     return res
 }
