@@ -3,5 +3,7 @@
 </script>
 
 <template>
-    nic
+  <Suspense>
+
+  </Suspense>
 </template>
