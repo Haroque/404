@@ -27,7 +27,11 @@ export async function secureFetch(path: string, data: any): Promise<Response> {
     const header = localStorage.getItem(CREDS)
 
     if (header != null) {
+        if (!data.headers) {
+            data.headers = {};
+        }
         data.headers['Authorization'] = 'Basic ' + header
+        data.headers['Content-Type'] = "application/json"
     }
 
     const res = await fetch(API_URL + path, data);
