@@ -3,8 +3,6 @@ import { ref } from 'vue';
 import Splash from '../../assets/login_splash.jpg'
 import { secureFetch } from '@/auth';
 import { useRouter } from '@/router';
-defineProps<{
-}>()
 
 const error = ref("")
 const errorBar = ref(false)

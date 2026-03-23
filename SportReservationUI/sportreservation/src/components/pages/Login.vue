@@ -56,6 +56,7 @@ async function validate() {
             <input v-model="email" class="input-textbox" type="email" placeholder="E-mail" />
             <input v-model="password" class="input-textbox" type="password" placeholder="Heslo" />
             <input @click="validate()" class="input-submit" value="Přihlásit se"/>
+            <RouterLink :to="{ name: 'register' }">Nemáte účet?</RouterLink>
         </form>
     </main>
 </template>
