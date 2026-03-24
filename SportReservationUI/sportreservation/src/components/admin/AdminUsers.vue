@@ -1,13 +1,14 @@
 <script setup lang="ts">
+import type {User} from "@/interfaces.ts";
 import {secureFetch} from "@/auth.ts";
 
-const users = await secureFetch("/User").then(it => it.json())
+const users: User[] = await secureFetch("/User").then(it => it.json())
 
 </script>
 
 <template>
-  <div class="d-flex justify-lg-space-between">
-    <h1>Uživatelé</h1>
+  <div class="d-flex justify-space-between align-center mb-4">
+    <h1 class="text-h4">Uživatelé</h1>
     <v-btn icon="mdi-plus"/>
   </div>
 
@@ -18,15 +19,15 @@ const users = await secureFetch("/User").then(it => it.json())
         <th>Jméno</th>
         <th>Email</th>
         <th>Admin</th>
-        <th>Akce</th>
+        <th class="text-right">Akce</th>
       </tr>
       </thead>
-      <tbody v-for="user in users">
-      <tr>
+      <tbody>
+      <tr v-for="user in users">
         <td>{{ user.fullName }}</td>
         <td>{{ user.email }}</td>
         <td>{{ user.role == 'Admin' }}</td>
-        <td class="d-flex justify-lg-space-between">
+        <td class="text-right">
           <v-btn icon="mdi-pencil"/>
           <v-btn icon="mdi-trash-can"/>
         </td>
