@@ -9,12 +9,12 @@ public class AppDbContext : DbContext
     {
     }
 
-    public DbSet<User> Users { get; set; }
-    public DbSet<FacilityType> FacilityTypes { get; set; }
-    public DbSet<Facility> Facilities { get; set; }
-    public DbSet<Reservation> Reservations { get; set; }
-    public DbSet<PriceList> PriceLists { get; set; }
-    public DbSet<Downtime> Downtimes { get; set; }
+    public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<FacilityType> FacilityTypes { get; set; }
+    public virtual DbSet<Facility> Facilities { get; set; }
+    public virtual DbSet<Reservation> Reservations { get; set; }
+    public virtual DbSet<PriceList> PriceLists { get; set; }
+    public virtual DbSet<Downtime> Downtimes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
