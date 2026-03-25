@@ -53,13 +53,13 @@ onMounted(async () => {
           <v-list-item
               prepend-icon="mdi-home-edit"
               title="Typy sportovišť"
-              value="facilities"
+              value="facility-types"
               to="/admin/facility-types"
           />
           <v-list-item
               prepend-icon="mdi-home"
               title="Sportoviště"
-              value="facility-types"
+              value="facilities"
               to="/admin/facilities"
           />
           <v-list-item
