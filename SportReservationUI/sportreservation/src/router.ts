@@ -35,6 +35,11 @@ export function initRouter() {
                         path: 'users',
                         name: 'admin-users',
                         component: () => import('./components/admin/AdminUsers.vue')
+                    },
+                    {
+                        path: 'facility-types',
+                        name: 'admin-facility-types',
+                        component: () => import('./components/admin/FacilityType.vue')
                     }
                 ]
             }
