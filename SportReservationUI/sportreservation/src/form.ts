@@ -5,8 +5,9 @@ export abstract class Form {
     public error = false
     public errorMessage = ""
 
-    public open() {
+    public open(data: any = null) {
         this.opened = true
+        this.onOpen(data)
     }
 
     public close() {
@@ -36,6 +37,10 @@ export abstract class Form {
 
     public abstract onClear(): void
 
+    public onOpen(data: any): void {
+
+    }
+
     public async onReload(): Promise<void> {
 
     }
@@ -44,6 +49,12 @@ export abstract class Form {
         return false
     }
 }
+
+export function isNotNullOrEmpty(value: string) {
+    return value != null && value.length > 0
+}
+
+// constraints
 
 export function required(v: any) {
     return !!v || "Tohle pole je povinné"
