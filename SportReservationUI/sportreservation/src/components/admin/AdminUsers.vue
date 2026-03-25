@@ -1,15 +1,123 @@
 <script setup lang="ts">
-import type {User} from "@/interfaces.ts";
 import {secureFetch} from "@/auth.ts";
+import {onMounted, ref} from "vue";
+import {Form, required} from "@/form.ts";
 
-const users: User[] = await secureFetch("/User").then(it => it.json())
+const users = ref([])
+
+onMounted(async () => {
+  await reloadUsers()
+})
+
+async function reloadUsers() {
+  users.value = await secureFetch("/User").then(it => it.json())
+}
+
+// Add Form
+
+class AddForm extends Form {
+  email = ""
+  fullName = ""
+  password = ""
+
+  onClear(): void {
+    this.email = ""
+    this.fullName = ""
+    this.password = ""
+  }
+
+  async onReload(): Promise<void> {
+    await reloadUsers()
+  }
+
+  async onPost(): Promise<boolean> {
+    const result = await secureFetch("/User", {
+      method: "POST",
+      body: JSON.stringify({
+        email: this.email,
+        fullName: this.fullName,
+        password: this.password
+      })
+    })
+    if (result.ok) {
+      return true
+    }
+    switch (await result.text()) {
+      case "email-invalid":
+        this.fail("Neplatný email")
+        break;
+      case "already-exists":
+        this.fail("Tento email již je zaregistrovaný")
+        break;
+      default:
+        this.fail("Neznáma chyba")
+        break;
+    }
+    return false;
+  }
+}
+
+const addForm = ref(new AddForm())
 
 </script>
 
 <template>
+  <v-dialog
+      v-model="addForm.opened"
+      max-width="450"
+      persistent
+  >
+    <v-dialog v-model="addForm.error" max-width="300">
+      <v-card title="Chyba" v-bind:text="addForm.errorMessage"/>
+    </v-dialog>
+
+    <v-card title="Nový uživatel">
+      <v-form v-model="addForm.valid">
+        <v-container>
+          <v-row>
+            <v-col>
+              <v-text-field
+                  label="Email"
+                  :rules="[required]"
+                  v-model="addForm.email"
+              />
+            </v-col>
+            <v-col>
+              <v-text-field
+                  label="Jméno"
+                  :rules="[required]"
+                  v-model="addForm.fullName"
+              />
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col>
+              <v-text-field
+                  label="Heslo"
+                  :rules="[required]"
+                  v-model="addForm.password"
+              />
+            </v-col>
+          </v-row>
+        </v-container>
+      </v-form>
+      <template v-slot:actions>
+        <v-btn
+            :disabled="!addForm.valid"
+            :loading="addForm.loading"
+            append-icon="mdi-plus"
+            variant="tonal"
+            text="Vytvořit"
+            @click="addForm.post()"
+        />
+        <v-btn append-icon="mdi-close" variant="tonal" text="Zavřít" @click="addForm.close()"/>
+      </template>
+    </v-card>
+  </v-dialog>
+
   <div class="d-flex justify-space-between align-center mb-4">
     <h1 class="text-h4">Uživatelé</h1>
-    <v-btn icon="mdi-plus"/>
+    <v-btn icon="mdi-plus" @click="addForm.open()"/>
   </div>
 
   <v-card>
