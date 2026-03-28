@@ -15,7 +15,15 @@ export async function tryLogin(email: string, password: string): Promise<boolean
         return false;
     }
     localStorage.setItem(CREDS, header)
-    return true;
+
+    const json = await res.json()
+
+    if (json.role == 'Admin') {
+        await useRouter().push({name: 'admin'})
+        return true
+    }
+    await useRouter().push({name: 'home'})
+    return true
 }
 
 export async function logout() {
