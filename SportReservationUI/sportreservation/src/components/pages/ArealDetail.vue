@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import '@/assets/main.css';
 import NavBar from "../views/NavBar.vue";
 
 </script>

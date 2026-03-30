@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import '@/assets/main.css';
 import NavBar from "../views/NavBar.vue";
 import ArealList from "../views/ArealList.vue";
 </script>

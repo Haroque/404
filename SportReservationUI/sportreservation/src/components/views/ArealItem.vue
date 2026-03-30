@@ -42,7 +42,7 @@ const props = defineProps(['facility'])
     color: var(--color-heading);
 }
 .areal-item-text-container > .facility-type {
-    color: var(--vt-c-yellow);
+    color: var(--color-accent);
     text-transform: uppercase;
     font-weight: 700;
     font-size: x-small;

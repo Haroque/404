@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import '@/assets/main.css';
 import { ref } from 'vue';
 import Splash from '../../assets/login_splash.jpg'
 import { tryLogin } from '@/auth';

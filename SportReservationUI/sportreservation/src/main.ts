@@ -9,7 +9,7 @@ import * as labs from 'vuetify/labs/components'
 
 import 'vuetify/styles'
 import '@mdi/font/css/materialdesignicons.css'
-import './assets/main.css'
+import './assets/base.css'
 
 createApp(App)
     .use(initRouter())
@@ -20,8 +20,8 @@ createApp(App)
                 light: {
                     dark: false,
                     colors: {
-                        primary: colors.yellow.lighten2, // #E53935
-                        secondary: colors.indigo.darken2, // #FFCDD2
+                        primary: colors.yellow.lighten2,
+                        secondary: colors.indigo.darken2,
                     }
                 },
             },
