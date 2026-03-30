@@ -22,7 +22,6 @@ async function validate() {
         return
     }
     if (await tryLogin(email.value, password.value)) {
-        await useRouter().push({ name: 'home' })
         return
     }
     error.value = "Neplatný email nebo heslo"
@@ -83,7 +82,7 @@ form {
     background-color: var(--vt-c-white-mute);
 }
 .input-submit {
-    padding: 0.6rem 1rem;
+    padding: 0.6rem 0rem;
     font-size: 1.0rem;
     background-color: var(--vt-c-yellow);
     border: none;
@@ -91,6 +90,7 @@ form {
     font-weight: 600;
     margin-top: 1rem;
     transition-duration: 100ms;
+    text-align: center;
     cursor: pointer;
 }
 .input-submit:hover {
