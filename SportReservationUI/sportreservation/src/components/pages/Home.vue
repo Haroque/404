@@ -10,7 +10,7 @@ import ArealList from "../views/ArealList.vue";
     </div>
 </template>
 
-<style scoped> 
+<style scoped>
 .scroll-container {
     position: absolute;
     display: flex;

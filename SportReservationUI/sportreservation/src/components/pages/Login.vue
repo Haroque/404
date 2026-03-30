@@ -22,7 +22,6 @@ async function validate() {
         return
     }
     if (await tryLogin(email.value, password.value)) {
-        await useRouter().push({ name: 'home' })
         return
     }
     error.value = "Neplatný email nebo heslo"

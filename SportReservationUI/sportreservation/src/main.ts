@@ -5,7 +5,10 @@ import { createVuetify } from 'vuetify'
 import colors from 'vuetify/util/colors'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
+import * as labs from 'vuetify/labs/components'
 
+import 'vuetify/styles'
+import '@mdi/font/css/materialdesignicons.css'
 import './assets/main.css'
 
 createApp(App)
@@ -23,7 +26,10 @@ createApp(App)
                 },
             },
         },
-        components,
-        directives
+        components: {
+            ...components,
+            ...directives,
+            ...labs
+        },
     }))
     .mount('#app')

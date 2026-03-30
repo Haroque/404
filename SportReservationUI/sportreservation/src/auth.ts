@@ -1,4 +1,4 @@
-import { useRouter } from "./router";
+import {useRouter} from "./router";
 
 export const API_URL: string = "http://localhost:5234/api"
 export const CREDS: string = "creds"
@@ -15,15 +15,23 @@ export async function tryLogin(email: string, password: string): Promise<boolean
         return false;
     }
     localStorage.setItem(CREDS, header)
-    return true;
+
+    const json = await res.json()
+
+    if (json.role == 'Admin') {
+        await useRouter().push({name: 'admin'})
+        return true
+    }
+    await useRouter().push({name: 'home'})
+    return true
 }
 
 export async function logout() {
     localStorage.removeItem(CREDS)
-    await useRouter().push({ name: 'login' })
+    await useRouter().push({name: 'login'})
 }
 
-export async function secureFetch(path: string, data: any): Promise<Response> {
+export async function secureFetch(path: string, data: any = {}): Promise<Response> {
     const header = localStorage.getItem(CREDS)
 
     if (header != null) {
@@ -37,7 +45,11 @@ export async function secureFetch(path: string, data: any): Promise<Response> {
     const res = await fetch(API_URL + path, data);
 
     if (res.status == 401) {
-        await useRouter().push({ name: 'login' })
+        await useRouter().push({name: 'login'})
+        return res
+    }
+    if (res.status == 403) {
+        await useRouter().push({name: 'home'})
         return res
     }
     return res
