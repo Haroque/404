@@ -1,19 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { RouterView, RouterLink } from 'vue-router'
-import { secureFetch } from "@/auth.ts";
+import { secureFetch } from "@/auth.ts"
 
 interface Self {
   fullName: string
 }
 
-const isScrolled = ref(false)
-const isMobileMenuOpen = ref(false)
 const self = ref<Self>({ fullName: '' })
-
-const handleScroll = () => {
-  isScrolled.value = window.scrollY > 20
-}
+const isMobileMenuOpen = ref(false)
 
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
@@ -24,7 +19,6 @@ const closeMobileMenu = () => {
 }
 
 onMounted(async () => {
-  window.addEventListener('scroll', handleScroll)
   const response = await secureFetch("/User/Self")
   if (response.ok) {
     self.value = await response.json()
