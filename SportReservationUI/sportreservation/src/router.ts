@@ -20,6 +20,11 @@ export function initRouter() {
                 path: '/register',
                 name: 'register',
                 component: () => import('./components/pages/Register.vue')
+            },
+            {
+                path: '/areal/:id',
+                name: 'areal-detail',
+                component: () => import('./components/pages/ArealDetail.vue')
             }
         ]
     })
