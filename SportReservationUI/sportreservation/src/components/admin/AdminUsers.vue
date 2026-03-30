@@ -63,7 +63,7 @@ class DelForm extends Form {
     this.user = {}
   }
 
-  onOpen(data: any) {
+  async onOpen(data: any): Promise<void> {
     this.user = data
   }
 
@@ -98,7 +98,7 @@ class EditForm extends Form {
     this.user = {}
   }
 
-  onOpen(data: any) {
+  async onOpen(data: any): Promise<void> {
     this.user = data
   }
 

@@ -5,9 +5,9 @@ export abstract class Form {
     public error = false
     public errorMessage = ""
 
-    public open(data: any = null) {
+    public async open(data: any = null) {
         this.opened = true
-        this.onOpen(data)
+        await this.onOpen(data)
     }
 
     public close() {
@@ -37,7 +37,7 @@ export abstract class Form {
 
     public abstract onClear(): void
 
-    public onOpen(data: any): void {
+    public async onOpen(data: any): Promise<void> {
 
     }
 
