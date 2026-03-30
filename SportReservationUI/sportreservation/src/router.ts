@@ -22,6 +22,11 @@ export function initRouter() {
                 component: () => import('./components/pages/Register.vue')
             },
             {
+                path: '/areal/:id',
+                name: 'areal-detail',
+                component: () => import('./components/pages/ArealDetail.vue')
+            },
+            {
                 path: '/admin',
                 name: 'admin',
                 component: () => import("./components/admin/Admin.vue"),
@@ -39,7 +44,7 @@ export function initRouter() {
                     {
                         path: 'facility-types',
                         name: 'admin-facility-types',
-                        component: () => import('./components/admin/FacilityType.vue')
+                        component: () => import('./components/admin/AdminFacilityType.vue')
                     }
                 ]
             }
