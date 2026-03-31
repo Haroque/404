@@ -3,13 +3,7 @@ import {secureFetch} from "@/auth.ts";
 import {onMounted, ref} from "vue";
 import {Form, isNotNullOrEmpty, required} from "@/form.ts";
 
-interface FacilityType {
-  id: string
-  name: string
-  description: string
-}
-
-const facilityTypes = ref<FacilityType[]>([])
+const facilityTypes = ref([])
 
 onMounted(async () => {
   await reloadFacilityTypes()
@@ -60,13 +54,13 @@ class AddForm extends Form {
 
 class DelForm extends Form {
 
-  facilityType: FacilityType = {} as FacilityType
+  facilityType = {} as any
 
   onClear(): void {
-    this.facilityType = {} as FacilityType
+    this.facilityType = {} as any
   }
 
-  onOpen(data: FacilityType) {
+  onOpen(data: any) {
     this.facilityType = data
   }
 
@@ -95,13 +89,13 @@ class DelForm extends Form {
 
 class EditForm extends Form {
 
-  facilityType: FacilityType = {} as FacilityType
+  facilityType = {} as any
 
   onClear(): void {
-    this.facilityType = {} as FacilityType
+    this.facilityType = {} as any
   }
 
-  onOpen(data: FacilityType) {
+  onOpen(data: any) {
     this.facilityType = data
   }
 
@@ -110,13 +104,14 @@ class EditForm extends Form {
   }
 
   async onPost(): Promise<boolean> {
+    const body = {
+      id: this.facilityType.id,
+      name: this.facilityType.name,
+      description: this.facilityType.description
+    }
     const result = await secureFetch("/Facility/Type", {
       method: "PATCH",
-      body: JSON.stringify({
-        id: this.facilityType.id,
-        name: this.facilityType.name,
-        description: this.facilityType.description
-      })
+      body: JSON.stringify(body)
     })
     if (result.ok) {
       return true
