@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import {ref, onMounted} from 'vue'
 import {secureFetch} from "@/auth.ts";
+import {onMounted, ref} from "vue";
+import {Form, isNotNullOrEmpty, required} from "@/form.ts";
 
 interface FacilityType {
   id: string
@@ -9,146 +10,268 @@ interface FacilityType {
 }
 
 const facilityTypes = ref<FacilityType[]>([])
-const dialog = ref(false)
-const editMode = ref(false)
-const currentFacilityType = ref<FacilityType>({
-  id: '',
-  name: '',
-  description: ''
+
+onMounted(async () => {
+  await reloadFacilityTypes()
 })
 
-
-const loadFacilityTypes = async () => {
+async function reloadFacilityTypes() {
   facilityTypes.value = await secureFetch("/Facility/Type").then(it => it.json())
 }
 
-const saveFacilityType = async () => {
-  if (editMode.value) {
-    await secureFetch('/Facility/Type', {
-      method: 'PATCH',
+class AddForm extends Form {
+  name = ""
+  description = ""
+
+  onClear(): void {
+    this.name = ""
+    this.description = ""
+  }
+
+  async onReload(): Promise<void> {
+    await reloadFacilityTypes()
+  }
+
+  async onPost(): Promise<boolean> {
+    const result = await secureFetch("/Facility/Type", {
+      method: "POST",
       body: JSON.stringify({
-        id: currentFacilityType.value.id,
-        name: currentFacilityType.value.name,
-        description: currentFacilityType.value.description
+        name: this.name,
+        description: this.description
       })
     })
-  } else {
-    await secureFetch('/Facility/Type', {
-      method: 'POST',
+    if (result.ok) {
+      return true
+    }
+    switch (await result.text()) {
+      case "name-empty":
+        this.fail("Název nemůže být prázdný")
+        break
+      case "already-exists":
+        this.fail("Tento typ sportoviště již existuje")
+        break
+      default:
+        this.fail("Neznáma chyba")
+        break
+    }
+    return false
+  }
+}
+
+class DelForm extends Form {
+
+  facilityType: FacilityType = {} as FacilityType
+
+  onClear(): void {
+    this.facilityType = {} as FacilityType
+  }
+
+  onOpen(data: FacilityType) {
+    this.facilityType = data
+  }
+
+  async onReload(): Promise<void> {
+    await reloadFacilityTypes()
+  }
+
+  async onPost(): Promise<boolean> {
+    const result = await secureFetch("/Facility/Type/" + this.facilityType.id, {
+      method: "DELETE"
+    })
+    if (result.ok) {
+      return true
+    }
+    switch (await result.text()) {
+      case "cant-delete":
+        this.fail("Tento typ sportoviště nelze smazat.")
+        break
+      default:
+        this.fail("Neznáma chyba")
+        break
+    }
+    return false
+  }
+}
+
+class EditForm extends Form {
+
+  facilityType: FacilityType = {} as FacilityType
+
+  onClear(): void {
+    this.facilityType = {} as FacilityType
+  }
+
+  onOpen(data: FacilityType) {
+    this.facilityType = data
+  }
+
+  async onReload(): Promise<void> {
+    await reloadFacilityTypes()
+  }
+
+  async onPost(): Promise<boolean> {
+    const result = await secureFetch("/Facility/Type", {
+      method: "PATCH",
       body: JSON.stringify({
-        name: currentFacilityType.value.name,
-        description: currentFacilityType.value.description
+        id: this.facilityType.id,
+        name: this.facilityType.name,
+        description: this.facilityType.description
       })
     })
+    if (result.ok) {
+      return true
+    }
+    switch (await result.text()) {
+      case "name-empty":
+        this.fail("Název nemůže být prázdný")
+        break
+      case "already-exists":
+        this.fail("Tento typ sportoviště již existuje")
+        break
+      default:
+        this.fail("Neznáma chyba")
+        break
+    }
+    return false
   }
-  dialog.value = false
-  await loadFacilityTypes()
 }
 
-const deleteFacilityType = async (id: string) => {
-  if (confirm('Opravdu chcete smazat tento typ sportoviště?')) {
-    await secureFetch(`/Facility/Type/${id}`, {
-      method: 'DELETE'
-    })
-    await loadFacilityTypes()
-  }
-}
+const addForm = ref(new AddForm())
+const delForm = ref(new DelForm())
+const editForm = ref(new EditForm())
 
-const editFacilityType = (facilityType: FacilityType) => {
-  currentFacilityType.value = {...facilityType}
-  editMode.value = true
-  dialog.value = true
-}
-
-const openAddDialog = () => {
-  currentFacilityType.value = {
-    id: '',
-    name: '',
-    description: ''
-  }
-  editMode.value = false
-  dialog.value = true
-}
-
-onMounted(() => {
-  loadFacilityTypes()
-})
 </script>
 
 <template>
+  <v-dialog v-model="addForm.opened" max-width="450">
+
+    <v-dialog v-model="addForm.error" max-width="300">
+      <v-card title="Chyba" v-bind:text="addForm.errorMessage"/>
+    </v-dialog>
+
+    <v-card title="Nový typ sportoviště">
+      <v-form v-model="addForm.valid">
+        <v-container>
+          <v-row>
+            <v-col>
+              <v-text-field
+                  label="Název"
+                  :rules="[required]"
+                  v-model="addForm.name"
+              />
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col>
+              <v-textarea
+                  label="Popis"
+                  rows="3"
+                  v-model="addForm.description"
+              />
+            </v-col>
+          </v-row>
+        </v-container>
+      </v-form>
+      <template v-slot:actions>
+        <v-btn
+            :disabled="!addForm.valid"
+            :loading="addForm.loading"
+            append-icon="mdi-plus"
+            variant="tonal"
+            text="Vytvořit"
+            @click="addForm.post()"
+        />
+        <v-btn append-icon="mdi-close" variant="tonal" text="Zavřít" @click="addForm.close()"/>
+      </template>
+    </v-card>
+  </v-dialog>
+
+
+  <v-dialog v-model="editForm.opened" max-width="450">
+
+    <v-dialog v-model="editForm.error" max-width="300">
+      <v-card title="Chyba" v-bind:text="editForm.errorMessage"/>
+    </v-dialog>
+
+    <v-card title="Úprava typu sportoviště">
+      <v-form v-model="editForm.valid">
+        <v-container>
+          <v-row>
+            <v-col>
+              <v-text-field
+                  label="Název"
+                  :rules="[required]"
+                  v-model="editForm.facilityType.name"
+              />
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col>
+              <v-textarea
+                  label="Popis"
+                  rows="3"
+                  v-model="editForm.facilityType.description"
+              />
+            </v-col>
+          </v-row>
+        </v-container>
+      </v-form>
+      <template v-slot:actions>
+        <v-btn
+            :disabled="!editForm.valid"
+            :loading="editForm.loading"
+            append-icon="mdi-content-save"
+            variant="tonal"
+            text="Uložit"
+            @click="editForm.post()"
+        />
+        <v-btn append-icon="mdi-close" variant="tonal" text="Zavřít" @click="editForm.close()"/>
+      </template>
+    </v-card>
+  </v-dialog>
+
+
+  <v-dialog v-model="delForm.opened" max-width="450">
+
+    <v-dialog v-model="delForm.error" max-width="300">
+      <v-card title="Chyba" v-bind:text="delForm.errorMessage"/>
+    </v-dialog>
+
+    <v-card title="Smazat typ sportoviště?" v-bind:text="'Opravdu chceš smazat typ sportoviště ' + delForm.facilityType.name">
+      <template v-slot:actions>
+        <v-btn append-icon="mdi-close" variant="tonal" text="Zavřít" @click="delForm.close()"/>
+        <v-btn append-icon="mdi-trash-can" variant="tonal" text="Smazat" @click="delForm.post()"/>
+      </template>
+    </v-card>
+  </v-dialog>
+
+
   <div class="d-flex justify-space-between align-center mb-4">
     <h1 class="text-h4">Typy sportovišť</h1>
-    <v-btn icon="mdi-plus" @click="openAddDialog"/>
+    <v-btn icon="mdi-plus" @click="addForm.open()"/>
   </div>
 
-  
-  <v-card class="w-100">
-    <v-table class="w-100">
+  <v-card>
+    <v-table>
       <thead>
       <tr>
         <th>Název</th>
         <th>Popis</th>
-        <th>Akce</th>
+        <th class="text-right">Akce</th>
       </tr>
       </thead>
       <tbody>
-      <tr v-for="facilityType in facilityTypes" :key="facilityType.id">
+      <tr v-for="facilityType in facilityTypes">
         <td>{{ facilityType.name }}</td>
         <td>{{ facilityType.description }}</td>
-        <td>
-          <div class="d-flex gap-2">
-            <v-btn
-              icon="mdi-pencil"
-              size="small"
-              variant="text"
-              @click="editFacilityType(facilityType)"
-            />
-            <v-btn
-              icon="mdi-trash-can"
-              size="small"
-              variant="text"
-              color="error"
-              @click="deleteFacilityType(facilityType.id)"
-            />
-          </div>
+        <td class="text-right">
+          <v-btn icon="mdi-pencil" @click="editForm.open(facilityType)"/>
+          <v-btn icon="mdi-trash-can" @click="delForm.open(facilityType)"/>
         </td>
       </tr>
       </tbody>
     </v-table>
   </v-card>
-
-  <v-dialog v-model="dialog" max-width="500px">
-    <v-card>
-      <v-card-title>
-        <span class="text-h5">{{ editMode ? 'Upravit typ' : 'Přidat typ' }}</span>
-      </v-card-title>
-      
-      <v-card-text>
-        <v-form>
-          <v-text-field
-            v-model="currentFacilityType.name"
-            label="Název"
-            required
-          />
-          <v-textarea
-            v-model="currentFacilityType.description"
-            label="Popis"
-            rows="3"
-          />
-        </v-form>
-      </v-card-text>
-
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="gray" variant="text" @click="dialog = false">
-          Zrušit
-        </v-btn>
-        <v-btn color="primary" variant="text" @click="saveFacilityType">
-          Uložit
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
 </template>
 
 <style scoped>
