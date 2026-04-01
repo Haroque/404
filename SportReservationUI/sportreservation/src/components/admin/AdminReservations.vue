@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import {secureFetch} from "@/auth.ts";
-import {onMounted, ref, computed} from "vue";
+import {onMounted, ref, computed, watch} from "vue";
 import {Form, required} from "@/form.ts";
+import {useRoute, useRouter} from "vue-router";
 
 const reservations = ref([])
 const users = ref([])
 const facilities = ref([])
 const loading = ref(false)
+
+const route = useRoute()
+const router = useRouter()
 
 onMounted(async () => {
   await loadData()
@@ -25,6 +29,7 @@ async function loadData() {
   }
 }
 
+//omezení
 async function loadUsers() {
   const usersData = await secureFetch("/User").then(it => it.json())
   users.value = usersData.map((user: any) => ({
@@ -48,7 +53,25 @@ async function loadFacilities() {
 }
 
 async function loadReservations() {
-  const reservationsData = await secureFetch("/Reservation").then(it => it.json())
+  // Sestavení query parametrů
+  const params = new URLSearchParams()
+  
+  if (statusFilter.value && statusFilter.value !== 'all') {
+    params.append('status', statusFilter.value)
+  }
+  
+  if (userFilter.value) {
+    params.append('userSearch', userFilter.value)
+  }
+  
+  if (facilityFilter.value) {
+    params.append('facilitySearch', facilityFilter.value)
+  }
+  
+  const queryString = params.toString()
+  const url = queryString ? `/Reservation?${queryString}` : '/Reservation'
+  
+  const reservationsData = await secureFetch(url).then(it => it.json())
   
   reservations.value = await Promise.all(
     reservationsData.map(async (reservation: any) => {
@@ -116,36 +139,33 @@ class CancelForm extends Form {
 const cancelForm = ref(new CancelForm())
 
 // Filtry
-const statusFilter = ref('all')
-const userFilter = ref('')
-const facilityFilter = ref('')
+const statusFilter = ref(route.query.status as string || 'all')
+const userFilter = ref(route.query.userSearch as string || '')
+const facilityFilter = ref(route.query.facilitySearch as string || '')
+
+// Sledování změn filtrů a aktualizace URL
+watch([statusFilter, userFilter, facilityFilter], () => {
+  const query: any = {}
+  
+  if (statusFilter.value && statusFilter.value !== 'all') {
+    query.status = statusFilter.value
+  }
+  
+  if (userFilter.value) {
+    query.userSearch = userFilter.value
+  }
+  
+  if (facilityFilter.value) {
+    query.facilitySearch = facilityFilter.value
+  }
+  
+  router.replace({ query })
+  loadReservations()
+})
 
 const filteredReservations = computed(() => {
-  let filtered = reservations.value
-  
-  // Status filtr
-  if (statusFilter.value === 'active') {
-    filtered = filtered.filter(r => r.status === 'Active')
-  } else if (statusFilter.value === 'cancelled') {
-    filtered = filtered.filter(r => r.status === 'Cancelled')
-  }
-  
-  // User filtr
-  if (userFilter.value) {
-    filtered = filtered.filter(r => 
-      r.userName.toLowerCase().includes(userFilter.value.toLowerCase()) ||
-      r.userEmail.toLowerCase().includes(userFilter.value.toLowerCase())
-    )
-  }
-  
-  // Facility filtr
-  if (facilityFilter.value) {
-    filtered = filtered.filter(r => 
-      r.facilityName.toLowerCase().includes(facilityFilter.value.toLowerCase())
-    )
-  }
-  
-  return filtered
+  // Filtry jsou nyní řešeny na backendu přes query parametry
+  return reservations.value
 })
 
 </script>

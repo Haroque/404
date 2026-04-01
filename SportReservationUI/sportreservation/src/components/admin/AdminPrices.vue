@@ -5,10 +5,10 @@ import {Form, required} from "@/form.ts";
 
 const prices = ref([])
 const facilityTypes = ref([])
+const selectedFacilityType = ref(null)
 
 onMounted(async () => {
   await loadFacilityTypes()
-  await loadPrices()
 })
 
 async function loadFacilityTypes() {
@@ -16,25 +16,23 @@ async function loadFacilityTypes() {
 }
 
 async function loadPrices() {
-  const allPrices = []
-  
-  // Načteme ceny pro každý typ sportoviště
-  for (const facilityType of facilityTypes.value) {
-    try {
-      const typePrices = await secureFetch(`/PriceList/${facilityType.id}`).then(it => it.json())
-      const pricesWithType = typePrices.map((price) => ({
-        ...price,
-        facilityTypeName: facilityType.name,
-        validFrom: new Date(price.validFrom).toLocaleString('cs-CZ'),
-        validTo: price.validTo ? new Date(price.validTo).toLocaleString('cs-CZ') : null
-      }))
-      allPrices.push(...pricesWithType)
-    } catch (error) {
-      console.warn(`No prices found for facility type: ${facilityType.name}`)
-    }
+  if (!selectedFacilityType.value) {
+    prices.value = []
+    return
   }
   
-  prices.value = allPrices.sort((a, b) => new Date(a.validFrom).getTime() - new Date(b.validFrom).getTime())
+  try {
+    const typePrices = await secureFetch(`/PriceList/${selectedFacilityType.value}`).then(it => it.json())
+    prices.value = typePrices.map((price: any) => ({
+      ...price,
+      facilityTypeName: facilityTypes.value.find(ft => ft.id === selectedFacilityType.value)?.name || 'Neznámý typ',
+      validFrom: new Date(price.validFrom).toLocaleDateString('cs-CZ'),
+      validTo: price.validTo ? new Date(price.validTo).toLocaleDateString('cs-CZ') : null
+    })).sort((a, b) => new Date(a.validFrom).getTime() - new Date(b.validFrom).getTime())
+  } catch (error) {
+    console.warn(`No prices found for facility type: ${selectedFacilityType.value}`)
+    prices.value = []
+  }
 }
 
 class AddForm extends Form {
@@ -56,14 +54,14 @@ class AddForm extends Form {
 
   async onPost(): Promise<boolean> {
     // Vytvoříme DateTime v lokálním čase bez UTC konverze
-    const validFrom = new Date(this.validFrom);
-    const validTo = this.validTo ? new Date(this.validTo) : null;
+    const validFrom = this.validFrom ? (this.validFrom instanceof Date ? this.validFrom : new Date(this.validFrom)) : null;
+    const validTo = this.validTo ? (this.validTo instanceof Date ? this.validTo : new Date(this.validTo)) : null;
     
     const result = await secureFetch("/PriceList", {
       method: "POST",
       body: JSON.stringify({
         facilityTypeId: this.facilityTypeId,
-        validFrom: validFrom.toISOString(),
+        validFrom: validFrom ? validFrom.toISOString() : null,
         validTo: validTo ? validTo.toISOString() : null,
         pricePerHour: this.pricePerHour
       })
@@ -147,8 +145,8 @@ class EditForm extends Form {
 
   async onPost(): Promise<boolean> {
     // Vytvoříme DateTime v lokálním čase bez UTC konverze
-    const validFrom = this.validFrom ? new Date(this.validFrom) : null;
-    const validTo = this.validTo ? new Date(this.validTo) : null;
+    const validFrom = this.validFrom ? (this.validFrom instanceof Date ? this.validFrom : new Date(this.validFrom)) : null;
+    const validTo = this.validTo ? (this.validTo instanceof Date ? this.validTo : new Date(this.validTo)) : null;
     
     const result = await secureFetch("/PriceList/" + this.price.id, {
       method: "PATCH",
@@ -219,20 +217,23 @@ const editForm = ref(new EditForm())
           </v-row>
           <v-row>
             <v-col>
-              <v-text-field
+              <v-date-input
                   label="Platnost od"
-                  type="datetime-local"
                   :rules="[required]"
                   v-model="addForm.validFrom"
+                  type="datetime"
+                  prepend-icon="mdi-calendar"
               />
             </v-col>
             <v-col>
-              <v-text-field
+              <v-date-input
                   label="Platnost do"
-                  type="datetime-local"
                   v-model="addForm.validTo"
+                  type="datetime"
+                  prepend-icon="mdi-calendar"
                   hint="Nechte prázdné pro neomezenou platnost"
                   persistent-hint
+                  clearable
               />
             </v-col>
           </v-row>
@@ -284,20 +285,23 @@ const editForm = ref(new EditForm())
           </v-row>
           <v-row>
             <v-col>
-              <v-text-field
+              <v-date-input
                   label="Platnost od"
-                  type="datetime-local"
                   :rules="[required]"
                   v-model="editForm.validFrom"
+                  type="datetime"
+                  prepend-icon="mdi-calendar"
               />
             </v-col>
             <v-col>
-              <v-text-field
+              <v-date-input
                   label="Platnost do"
-                  type="datetime-local"
                   v-model="editForm.validTo"
+                  type="datetime"
+                  prepend-icon="mdi-calendar"
                   hint="Nechte prázdné pro neomezenou platnost"
                   persistent-hint
+                  clearable
               />
             </v-col>
           </v-row>
@@ -335,8 +339,28 @@ const editForm = ref(new EditForm())
 
   <div class="d-flex justify-space-between align-center mb-4">
     <h1 class="text-h4">Cenník</h1>
-    <v-btn icon="mdi-plus" @click="addForm.open()"/>
+    <v-btn icon="mdi-plus" @click="addForm.open()" :disabled="!selectedFacilityType"/>
   </div>
+
+  <!-- Výběr typu sportoviště -->
+  <v-card class="mb-4">
+    <v-card-text>
+      <v-row align="center">
+        <v-col cols="12" md="6">
+          <v-select
+              label="Typ sportoviště"
+              v-model="selectedFacilityType"
+              :items="facilityTypes"
+              item-title="name"
+              item-value="id"
+              clearable
+              prepend-inner-icon="mdi-domain"
+              @update:model-value="loadPrices"
+          />
+        </v-col>
+      </v-row>
+    </v-card-text>
+  </v-card>
 
   <v-card>
     <v-table>
@@ -362,10 +386,15 @@ const editForm = ref(new EditForm())
       </tr>
       </tbody>
     </v-table>
-    <v-card-text v-if="prices.length === 0" class="text-center py-8">
+    <v-card-text v-if="!selectedFacilityType" class="text-center py-8">
+      <v-icon size="64" color="grey-lighten-1" class="mb-4">mdi-domain</v-icon>
+      <div class="text-h6 mb-2">Vyberte typ sportoviště</div>
+      <div class="text-body-2 text-grey-darken-1">Pro zobrazení cen vyberte typ sportoviště z výše uvedeného seznamu</div>
+    </v-card-text>
+    <v-card-text v-else-if="prices.length === 0" class="text-center py-8">
       <v-icon size="64" color="grey-lighten-1" class="mb-4">mdi-currency-usd-off</v-icon>
       <div class="text-h6 mb-2">Žádné ceny</div>
-      <div class="text-body-2 text-grey-darken-1">Zatím nebyly vytvořeny žádné ceny</div>
+      <div class="text-body-2 text-grey-darken-1">Pro tento typ sportoviště nebyly vytvořeny žádné ceny</div>
     </v-card-text>
   </v-card>
 </template>
