@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SportReservation.Services;
-
 using SportReservation.Middlewares;
 using SportReservation.Models;
 
@@ -21,49 +20,66 @@ public class ReservationsController : ControllerBase
     public async Task<IActionResult> Get(Guid id)
     {
         var r = await _svc.GetReservationAsync(id);
-        if (r == null) return NotFound();
+
+        if (r == null)
+            return NotFound();
+
         return Ok(r.ToDto());
     }
-    
-    // Nový endpoint: všechny rezervace přihlášeného uživatele, volitelně filtrovat aktivní/neaktivní
+
     [HttpGet]
-    public async Task<IActionResult> GetForCurrentUser([FromQuery] bool? active)
+    public async Task<IActionResult> GetFiltered(
+        [FromQuery(Name = "user_id")] Guid? userId,
+        [FromQuery(Name = "facility_id")] Guid? facilityId,
+        [FromQuery] bool? active)
     {
-        var lu = HttpContext.LoggedUser();
-        var list = await _svc.GetUserReservationsAsync(lu.Id, active);
-        
-        var dtos = list.Select(r => r.ToDto()); 
-        
+        var loggedUser = HttpContext.LoggedUser();
+
+        Guid? effectiveUserId = userId;
+
+        if (loggedUser.Role != UserRole.Admin)
+        {
+            if (userId.HasValue && userId.Value != loggedUser.Id)
+                return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
+
+            effectiveUserId = loggedUser.Id;
+        }
+
+        var list = await _svc.GetReservationsAsync(effectiveUserId, facilityId, active);
+        var dtos = list.Select(r => r.ToDto());
+
         return Ok(dtos);
     }
-    
-    
-    //DTO.UserId je nyní nepovinné.
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateReservationDto dto)
     {
         var lu = HttpContext.LoggedUser();
 
         Guid effectiveUserId;
+
         if (dto.UserId == null || dto.UserId == Guid.Empty)
         {
-            // pokud není user v body, použije se přihlášený uživatel
             effectiveUserId = lu.Id;
         }
         else
         {
-            // jenom admin 
             if (lu.Role != UserRole.Admin)
                 return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
+
             effectiveUserId = dto.UserId.Value;
         }
 
-        
-        var res = await _svc.CreateReservationAsync(effectiveUserId, dto.FacilityId, dto.StartAt, dto.EndAt);
+        var res = await _svc.CreateReservationAsync(
+            effectiveUserId,
+            dto.FacilityId,
+            dto.StartAt,
+            dto.EndAt
+        );
+
         return CreatedAtAction(nameof(Get), new { id = res.Id }, res.ToDto());
     }
 
-    // nebere údaje o uživateli v query; používá přihlášeného uživatele
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Cancel(Guid id)
     {
@@ -72,5 +88,4 @@ public class ReservationsController : ControllerBase
     }
 }
 
-// DTO s nepovinným UserId (může být null => vytvoří se pro přihlášeného)
-public record CreateReservationDto(Guid? UserId, Guid FacilityId, DateTime StartAt, DateTime EndAt); 
+public record CreateReservationDto(Guid? UserId, Guid FacilityId, DateTime StartAt, DateTime EndAt);
