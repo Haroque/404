@@ -19,7 +19,7 @@ async function fetchAllFacilities() {
 }
 
 async function reloadDowntimes() {
-  downtimes.value = await secureFetch("/Downtime/").then(it => it.json())
+  downtimes.value = await secureFetch("/Downtime/facility/" + facilityId.value).then(it => it.json())
 }
 
 class AddForm extends Form {
@@ -39,7 +39,7 @@ class AddForm extends Form {
     const result = await secureFetch("/Downtime", {
       method: "POST",
       body: JSON.stringify({
-        facilityId: facilityId,
+        facilityId: facilityId.value,
         startAt: this.period[0],
         endAt: this.period[this.period.length - 1],
         reason: this.reason
@@ -92,13 +92,16 @@ class DelForm extends Form {
 class EditForm extends Form {
 
   downtime = {}
+  period = []
 
   onClear(): void {
     this.downtime = {}
+    this.perid = []
   }
 
   async onOpen(data: any): Promise<void> {
     this.downtime = data
+    this.period = [data.startAt, data.endAt]
   }
 
   async onReload(): Promise<void> {
@@ -106,12 +109,12 @@ class EditForm extends Form {
   }
 
   async onPost(): Promise<boolean> {
-    const result = await secureFetch("/Downtime/" + downtime.id, {
+    const result = await secureFetch("/Downtime/" + this.downtime.id, {
       method: "PATCH",
       body: JSON.stringify({
         facilityId: this.downtime.facilityId,
-        startAt: this.downtime.startAt,
-        endAt: this.downtime.endAt,
+        startAt: this.period[0],
+        endAt: this.period[this.period.length - 1],
         reason: this.downtime.reason
       })
     })
@@ -144,9 +147,6 @@ const editForm = ref(new EditForm())
       <v-form v-model="addForm.valid">
         <v-container>
           <v-row>
-            <v-col>
-
-            </v-col>
             <v-col>
               <v-date-input
                   label="Doba"
@@ -188,29 +188,25 @@ const editForm = ref(new EditForm())
       <v-card title="Chyba" v-bind:text="editForm.errorMessage"/>
     </v-dialog>
 
-    <v-card title="Úprava uživatele">
+    <v-card title="Úprava údržby">
       <v-form v-model="editForm.valid">
         <v-container>
           <v-row>
             <v-col>
-              <v-text-field
-                  label="Email"
-                  v-model="editForm.user.email"
-              />
-            </v-col>
-            <v-col>
-              <v-text-field
-                  label="Jméno"
-                  v-model="editForm.user.fullName"
+              <v-date-input
+                  label="Doba"
+                  :rules="[required]"
+                  v-model="editForm.period"
+                  multiple="range"
               />
             </v-col>
           </v-row>
           <v-row>
             <v-col>
               <v-text-field
-                  label="Heslo"
-                  type="password"
-                  v-model="editForm.user.password"
+                  label="Důvod"
+                  :rules="[required]"
+                  v-model="editForm.downtime.reason"
               />
             </v-col>
           </v-row>
@@ -249,7 +245,7 @@ const editForm = ref(new EditForm())
   <div class="d-flex justify-space-between align-center mb-4">
     <h1 class="text-h4">Údržby</h1>
 
-    <v-combobox
+    <v-select
         label="Sportoviště"
         v-model="facilityId"
         :items="knownFacilities"

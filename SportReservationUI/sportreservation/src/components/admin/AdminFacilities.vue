@@ -176,7 +176,7 @@ const editForm = ref(new EditForm())
           </v-row>
           <v-row>
             <v-col>
-              <v-autocomplete
+              <v-select
                   label="Typ"
                   :rules="[required]"
                   v-model="addForm.type"
