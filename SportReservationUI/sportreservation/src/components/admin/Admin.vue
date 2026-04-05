@@ -70,7 +70,7 @@ onMounted(async () => {
           />
           <v-list-item
               prepend-icon="mdi-home-alert"
-              title="Udržby"
+              title="Údržby"
               value="downtimes"
               to="/admin/downtimes"
           />

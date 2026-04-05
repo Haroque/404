@@ -45,6 +45,16 @@ export function initRouter() {
                         path: 'facility-types',
                         name: 'admin-facility-types',
                         component: () => import('./components/admin/AdminFacilityType.vue')
+                    },
+                    {
+                        path: 'facilities',
+                        name: 'admin-facilities',
+                        component: () => import('./components/admin/AdminFacilities.vue')
+                    },
+                    {
+                        path: 'downtimes',
+                        name: 'admin-downtimes',
+                        component: () => import('./components/admin/AdminDowntimes.vue')
                     }
                 ]
             }
