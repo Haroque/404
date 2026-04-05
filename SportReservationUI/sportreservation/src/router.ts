@@ -20,6 +20,43 @@ export function initRouter() {
                 path: '/register',
                 name: 'register',
                 component: () => import('./components/pages/Register.vue')
+            },
+            {
+                path: '/areal/:id',
+                name: 'areal-detail',
+                component: () => import('./components/pages/ArealDetail.vue')
+            },
+            {
+                path: '/admin',
+                name: 'admin',
+                component: () => import("./components/admin/Admin.vue"),
+                children: [
+                    {
+                        path: '',
+                        name: 'admin-dashboard',
+                        component: () => import('./components/admin/AdminDashboard.vue')
+                    },
+                    {
+                        path: 'users',
+                        name: 'admin-users',
+                        component: () => import('./components/admin/AdminUsers.vue')
+                    },
+                    {
+                        path: 'facility-types',
+                        name: 'admin-facility-types',
+                        component: () => import('./components/admin/AdminFacilityType.vue')
+                    },
+                    {
+                        path: 'facilities',
+                        name: 'admin-facilities',
+                        component: () => import('./components/admin/AdminFacilities.vue')
+                    },
+                    {
+                        path: 'downtimes',
+                        name: 'admin-downtimes',
+                        component: () => import('./components/admin/AdminDowntimes.vue')
+                    }
+                ]
             }
         ]
     })
