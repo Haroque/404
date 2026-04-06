@@ -41,7 +41,7 @@ async function loadUsers() {
 
 async function loadFacilities() {
   try {
-    const facilitiesData = await secureFetch("/Facility").then(it => it.json())
+    const facilitiesData = await secureFetch("/Facility?page_size=1000&page=1").then(it => it.json()).then(it => it.items)
     facilities.value = facilitiesData.map((facility: any) => ({
       id: facility.id,
       name: facility.name
@@ -61,11 +61,11 @@ async function loadReservations() {
   }
   
   if (userFilter.value) {
-    params.append('userSearch', userFilter.value)
+    params.append('user_id', userFilter.value)
   }
   
   if (facilityFilter.value) {
-    params.append('facilitySearch', facilityFilter.value)
+    params.append('facility_id', facilityFilter.value)
   }
   
   const queryString = params.toString()
@@ -103,7 +103,7 @@ class CancelForm extends Form {
     this.reservation = {} as any
   }
 
-  onOpen(data: any) {
+  async onOpen(data: any): Promise<void> {
     this.reservation = data
   }
 
@@ -209,19 +209,25 @@ const filteredReservations = computed(() => {
           />
         </v-col>
         <v-col cols="12" md="4">
-          <v-text-field
-              label="Uživatel (jméno nebo email)"
-              v-model="userFilter"
-              clearable
-              prepend-inner-icon="mdi-account-search"
+          <v-autocomplete
+            label="Uživatel"
+            v-model="userFilter"
+            :items="users"
+            item-title="fullName"
+            item-value="id"
+            clearable
+            prepend-inner-icon="mdi-account-search"
           />
         </v-col>
         <v-col cols="12" md="4">
-          <v-text-field
-              label="Sportoviště"
-              v-model="facilityFilter"
-              clearable
-              prepend-inner-icon="mdi-map-marker"
+          <v-autocomplete
+            label="Sportoviště"
+            v-model="facilityFilter"
+            :items="facilities"
+            item-title="name"
+            item-value="id"
+            clearable
+            prepend-inner-icon="mdi-map-marker"
           />
         </v-col>
         <v-col cols="12" md="1" class="d-flex align-center">
