@@ -12,12 +12,22 @@ public class FacilityController(FacilityService facilityService) : ControllerBas
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery(Name = "page")] int page = 1,
-        [FromQuery(Name = "per_page")] int perPage = 10)
+        [FromQuery(Name = "per_page")] int perPage = 10,
+        [FromQuery(Name = "type_id")] Guid? typeId = null,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null)
     {
-        var facilities = await facilityService.GetPagedAsync(page, perPage);
+        // from a to musí být buď oba, nebo ani jeden
+        if ((from.HasValue && !to.HasValue) || (!from.HasValue && to.HasValue))
+            return BadRequest("Both 'from' and 'to' must be provided together.");
+
+        // kontrola správného časového rozsahu
+        if (from.HasValue && to.HasValue && from.Value >= to.Value)
+            return BadRequest("'from' must be earlier than 'to'.");
+
+        var facilities = await facilityService.GetPagedAsync(page, perPage, typeId, from, to);
         return Ok(facilities);
     }
-
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id)
@@ -32,7 +42,6 @@ public class FacilityController(FacilityService facilityService) : ControllerBas
 
         return Ok(facility.ToComplexDto());
     }
-
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] FacilityCreateDto body)

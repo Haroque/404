@@ -1,52 +1,54 @@
 <script setup lang="ts">
 import {secureFetch} from "@/auth.ts";
 import {onMounted, ref} from "vue";
-import {Form, isNotNullOrEmpty, required} from "@/form.ts";
+import {Form, required} from "@/form.ts";
 
-const users = ref([])
+const downtimes = ref([])
+const knownFacilities = ref([])
+const facilityId = ref("")
 
 onMounted(async () => {
-  await reloadUsers()
+  knownFacilities.value = await fetchAllFacilities()
+  await reloadDowntimes()
 })
 
-async function reloadUsers() {
-  users.value = await secureFetch("/User").then(it => it.json())
+async function fetchAllFacilities() {
+  return await secureFetch("/Facility?page_size=1000&page=1")
+      .then(it => it.json())
+      .then(it => it.items)
+}
+
+async function reloadDowntimes() {
+  downtimes.value = await secureFetch("/Downtime/facility/" + facilityId.value).then(it => it.json())
 }
 
 class AddForm extends Form {
-  email = ""
-  fullName = ""
-  password = ""
+  period = []
+  reason = ""
 
   onClear(): void {
-    this.email = ""
-    this.fullName = ""
-    this.password = ""
+    this.period = []
+    this.reason = ""
   }
 
   async onReload(): Promise<void> {
-    await reloadUsers()
+    await reloadDowntimes()
   }
 
   async onPost(): Promise<boolean> {
-    const result = await secureFetch("/User", {
+    const result = await secureFetch("/Downtime", {
       method: "POST",
       body: JSON.stringify({
-        email: this.email,
-        fullName: this.fullName,
-        password: this.password
+        facilityId: facilityId.value,
+        startAt: this.period[0],
+        endAt: this.period[this.period.length - 1],
+        reason: this.reason
       })
     })
     if (result.ok) {
       return true
     }
     switch (await result.text()) {
-      case "email-invalid":
-        this.fail("Neplatný email")
-        break
-      case "already-exists":
-        this.fail("Tento email již je zaregistrovaný")
-        break
       default:
         this.fail("Neznáma chyba")
         break
@@ -57,31 +59,28 @@ class AddForm extends Form {
 
 class DelForm extends Form {
 
-  user = {}
+  downtime = {}
 
   onClear(): void {
-    this.user = {}
+    this.downtime = {}
   }
 
   async onOpen(data: any): Promise<void> {
-    this.user = data
+    this.downtime = data
   }
 
   async onReload(): Promise<void> {
-    await reloadUsers()
+    await reloadDowntimes()
   }
 
   async onPost(): Promise<boolean> {
-    const result = await secureFetch("/User/" + this.user.id, {
+    const result = await secureFetch("/Downtime/" + this.downtime.id, {
       method: "DELETE"
     })
     if (result.ok) {
       return true
     }
     switch (await result.text()) {
-      case "cant-delete":
-        this.fail("Tohoto uživatele nelze smazat.")
-        break
       default:
         this.fail("Neznáma chyba")
         break
@@ -92,42 +91,37 @@ class DelForm extends Form {
 
 class EditForm extends Form {
 
-  user = {}
+  downtime = {}
+  period = []
 
   onClear(): void {
-    this.user = {}
+    this.downtime = {}
+    this.perid = []
   }
 
   async onOpen(data: any): Promise<void> {
-    this.user = data
+    this.downtime = data
+    this.period = [data.startAt, data.endAt]
   }
 
   async onReload(): Promise<void> {
-    await reloadUsers()
+    await reloadDowntimes()
   }
 
   async onPost(): Promise<boolean> {
-    const body = {
-      id: this.user.id,
-      email: this.user.email,
-      fullName: this.user.fullName
-    }
-    if (isNotNullOrEmpty(this.user.password)) {
-      body.password = {
-        new: this.user.password
-      }
-    }
-    const result = await secureFetch("/User", {
+    const result = await secureFetch("/Downtime/" + this.downtime.id, {
       method: "PATCH",
-      body: JSON.stringify(body)
+      body: JSON.stringify({
+        facilityId: this.downtime.facilityId,
+        startAt: this.period[0],
+        endAt: this.period[this.period.length - 1],
+        reason: this.downtime.reason
+      })
     })
     if (result.ok) {
       return true
     }
     switch (await result.text()) {
-      case "email-already-exists":
-        this.fail("Tento email již někdo má nastavený.")
-        break
       default:
         this.fail("Neznáma chyba")
         break
@@ -149,32 +143,25 @@ const editForm = ref(new EditForm())
       <v-card title="Chyba" v-bind:text="addForm.errorMessage"/>
     </v-dialog>
 
-    <v-card title="Nový uživatel">
+    <v-card title="Nová údržba">
       <v-form v-model="addForm.valid">
         <v-container>
           <v-row>
             <v-col>
-              <v-text-field
-                  label="Email"
+              <v-date-input
+                  label="Doba"
                   :rules="[required]"
-                  v-model="addForm.email"
-              />
-            </v-col>
-            <v-col>
-              <v-text-field
-                  label="Jméno"
-                  :rules="[required]"
-                  v-model="addForm.fullName"
+                  v-model="addForm.period"
+                  multiple="range"
               />
             </v-col>
           </v-row>
           <v-row>
             <v-col>
               <v-text-field
-                  label="Heslo"
-                  type="password"
+                  label="Důvod"
                   :rules="[required]"
-                  v-model="addForm.password"
+                  v-model="addForm.reason"
               />
             </v-col>
           </v-row>
@@ -201,29 +188,25 @@ const editForm = ref(new EditForm())
       <v-card title="Chyba" v-bind:text="editForm.errorMessage"/>
     </v-dialog>
 
-    <v-card title="Úprava uživatele">
+    <v-card title="Úprava údržby">
       <v-form v-model="editForm.valid">
         <v-container>
           <v-row>
             <v-col>
-              <v-text-field
-                  label="Email"
-                  v-model="editForm.user.email"
-              />
-            </v-col>
-            <v-col>
-              <v-text-field
-                  label="Jméno"
-                  v-model="editForm.user.fullName"
+              <v-date-input
+                  label="Doba"
+                  :rules="[required]"
+                  v-model="editForm.period"
+                  multiple="range"
               />
             </v-col>
           </v-row>
           <v-row>
             <v-col>
               <v-text-field
-                  label="Heslo"
-                  type="password"
-                  v-model="editForm.user.password"
+                  label="Důvod"
+                  :rules="[required]"
+                  v-model="editForm.downtime.reason"
               />
             </v-col>
           </v-row>
@@ -250,7 +233,7 @@ const editForm = ref(new EditForm())
       <v-card title="Chyba" v-bind:text="delForm.errorMessage"/>
     </v-dialog>
 
-    <v-card title="Smazat uživatele?" v-bind:text="'Opravdu chceš smazat uživatele ' + delForm.user.fullName">
+    <v-card title="Smazat uživatele?" v-bind:text="'Opravdu chceš smazat túto údržbu?'">
       <template v-slot:actions>
         <v-btn append-icon="mdi-close" variant="tonal" text="Zavřít" @click="delForm.close()"/>
         <v-btn append-icon="mdi-trash-can" variant="tonal" text="Smazat" @click="delForm.post()"/>
@@ -260,7 +243,17 @@ const editForm = ref(new EditForm())
 
 
   <div class="d-flex justify-space-between align-center mb-4">
-    <h1 class="text-h4">Uživatelé</h1>
+    <h1 class="text-h4">Údržby</h1>
+
+    <v-select
+        label="Sportoviště"
+        v-model="facilityId"
+        :items="knownFacilities"
+        @update:modelValue="reloadDowntimes()"
+        item-title="name"
+        item-value="id"
+        style="margin-left: 60%; margin-right: 2%"
+    />
     <v-btn icon="mdi-plus" @click="addForm.open()"/>
   </div>
 
@@ -268,20 +261,20 @@ const editForm = ref(new EditForm())
     <v-table>
       <thead>
       <tr>
-        <th>Jméno</th>
-        <th>Email</th>
-        <th>Admin</th>
+        <th>Od</th>
+        <th>Do</th>
+        <th>Důvod</th>
         <th class="text-right">Akce</th>
       </tr>
       </thead>
       <tbody>
-      <tr v-for="user in users">
-        <td>{{ user.fullName }}</td>
-        <td>{{ user.email }}</td>
-        <td>{{ user.role == 'Admin' }}</td>
+      <tr v-for="downtime in downtimes">
+        <td>{{ downtime.startAt }}</td>
+        <td>{{ downtime.endAt }}</td>
+        <td>{{ downtime.reason }}</td>
         <td class="text-right">
-          <v-btn icon="mdi-pencil" @click="editForm.open(user)"/>
-          <v-btn icon="mdi-trash-can" @click="delForm.open(user)"/>
+          <v-btn icon="mdi-pencil" @click="editForm.open(downtime)"/>
+          <v-btn icon="mdi-trash-can" @click="delForm.open(downtime)"/>
         </td>
       </tr>
       </tbody>
