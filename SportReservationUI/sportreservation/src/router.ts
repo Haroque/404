@@ -47,9 +47,19 @@ export function initRouter() {
                         component: () => import('./components/admin/AdminFacilityType.vue')
                     },
                     {
+                        path: 'facilities',
+                        name: 'admin-facilities',
+                        component: () => import('./components/admin/AdminFacilities.vue')
+                    },
+                    {
                         path: 'price-lists',
                         name: 'admin-price-lists',
                         component: () => import('./components/admin/AdminPrices.vue')
+                    },
+                    {
+                        path: 'downtimes',
+                        name: 'admin-downtimes',
+                        component: () => import('./components/admin/AdminDowntimes.vue')
                     },
                     {
                         path: 'reservations',

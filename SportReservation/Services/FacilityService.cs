@@ -6,7 +6,12 @@ namespace SportReservation.Services;
 
 public class FacilityService(AppDbContext db)
 {
-    public async Task<FacilityPaginatedDto> GetPagedAsync(int page, int perPage)
+    public async Task<FacilityPaginatedDto> GetPagedAsync(
+        int page,
+        int perPage,
+        Guid? typeId = null,
+        DateTime? from = null,
+        DateTime? to = null)
     {
         if (page < 1)
             page = 1;
@@ -14,13 +19,39 @@ public class FacilityService(AppDbContext db)
         if (perPage < 1)
             perPage = 10;
 
-        var totalCount = await db.Facilities.CountAsync();
+        var query = db.Facilities
+            .Include(f => f.Type)
+            .AsQueryable();
+
+        if (typeId.HasValue)
+        {
+            query = query.Where(f => f.TypeId == typeId.Value);
+        }
+
+        if (from.HasValue && to.HasValue)
+        {
+            var fromValue = from.Value;
+            var toValue = to.Value;
+
+            query = query.Where(f =>
+                f.IsActive &&
+                !db.Downtimes.Any(d =>
+                    d.FacilityId == f.Id &&
+                    d.StartAt < toValue &&
+                    d.EndAt > fromValue) &&
+                !db.Reservations.Any(r =>
+                    r.FacilityId == f.Id &&
+                    r.Status == ReservationStatus.Active &&
+                    r.StartAt < toValue &&
+                    r.EndAt > fromValue));
+        }
+
+        var totalCount = await query.CountAsync();
         var totalPages = totalCount == 0
             ? 0
             : (int)Math.Ceiling(totalCount / (double)perPage);
 
-        var facilities = await db.Facilities
-            .Include(f => f.Type)
+        var facilities = await query
             .OrderBy(f => f.Name)
             .Skip((page - 1) * perPage)
             .Take(perPage)
@@ -75,7 +106,7 @@ public class FacilityService(AppDbContext db)
         if (dto.TypeId.HasValue && dto.TypeId.Value != facility.TypeId)
         {
             var newType = await db.FacilityTypes.FirstOrDefaultAsync(t => t.Id == dto.TypeId.Value);
-            
+
             if (newType == null)
                 return null;
 
@@ -91,7 +122,6 @@ public class FacilityService(AppDbContext db)
 
         if (dto.IsActive.HasValue)
             facility.IsActive = dto.IsActive.Value;
-
 
         await db.SaveChangesAsync();
 
@@ -118,7 +148,6 @@ public class FacilityService(AppDbContext db)
         }
     }
 
-
     public async Task<IEnumerable<FacilityTypeDto>> GetTypesAsync()
     {
         return await db.FacilityTypes
@@ -127,9 +156,9 @@ public class FacilityService(AppDbContext db)
                 t.Id,
                 t.Name,
                 t.Description
-            )).ToListAsync();
+            ))
+            .ToListAsync();
     }
-
 
     public async Task<FacilityTypeDto> CreateTypeAsync(FacilityTypeCreateDto dto)
     {
@@ -163,8 +192,6 @@ public class FacilityService(AppDbContext db)
 
         return type.ToDto();
     }
-
-
 
     public async Task<bool> DeleteTypeAsync(Guid id)
     {
