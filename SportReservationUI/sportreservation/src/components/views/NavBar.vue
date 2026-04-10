@@ -9,8 +9,8 @@
             <nav>
                 <ul class="navbar-list">
                     <li><RouterLink class="navbar-item" :to="{ name: 'home' }">Sportoviště</RouterLink></li>
-                    <li><RouterLink class="navbar-item" :to="{ name: 'home' }">Rezervace</RouterLink></li>
-                    <li><RouterLink class="navbar-item" :to="{ name: 'home' }">Účet</RouterLink></li>
+                    <li><RouterLink class="navbar-item" :to="{ name: 'reservations' }">Rezervace</RouterLink></li>
+                    <li><RouterLink class="navbar-item" :to="{ name: 'account' }">Účet</RouterLink></li>
                 </ul>
             </nav>
         </div>

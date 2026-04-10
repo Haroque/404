@@ -27,6 +27,16 @@ export function initRouter() {
                 component: () => import('./components/pages/ArealDetail.vue')
             },
             {
+                path: '/reservations',
+                name: 'reservations',
+                component: () => import('./components/pages/Reservations.vue')
+            },
+            {
+                path: '/account',
+                name: 'account',
+                component: () => import('./components/pages/Account.vue')
+            },
+            {
                 path: '/admin',
                 name: 'admin',
                 component: () => import("./components/admin/Admin.vue"),

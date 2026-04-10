@@ -1,0 +1,337 @@
+/* Vuetify Custom Styles - Leyend Design System */
+
+/* Override Vuetify typography */
+.v-application {
+  font-family: 'Inter', sans-serif !important;
+}
+
+.v-application .text-h1 {
+  font-family: 'Leyend', serif !important;
+  font-size: 92px !important;
+  font-weight: 500 !important;
+  color: #172563 !important;
+}
+
+.v-application .text-h2 {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 56px !important;
+  font-weight: 500 !important;
+  color: #172563 !important;
+}
+
+.v-application .text-h3 {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 34px !important;
+  font-weight: 400 !important;
+  color: #373F61 !important;
+}
+
+.v-application .text-body-1 {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 21px !important;
+  font-weight: 400 !important;
+  color: #334155 !important;
+}
+
+/* Navigation Drawer Styles */
+.v-navigation-drawer {
+  background: linear-gradient(180deg, #172563 0%, #373F61 100%) !important;
+  border-right: none !important;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.v-navigation-drawer .v-list-item {
+  color: #FFFFFF !important;
+  margin: 4px 12px !important;
+  border-radius: 12px !important;
+  transition: all 0.3s ease !important;
+}
+
+.v-navigation-drawer .v-list-item:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  transform: translateX(4px) !important;
+}
+
+.v-navigation-drawer .v-list-item--active {
+  background: #FEE881 !important;
+  color: #172563 !important;
+  font-weight: 500 !important;
+}
+
+.v-navigation-drawer .v-list-item--active .v-list-item__prepend > .v-icon {
+  color: #172563 !important;
+}
+
+.v-navigation-drawer .v-list-item__prepend > .v-icon {
+  color: #FEE881 !important;
+}
+
+.v-navigation-drawer .v-divider {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  margin: 16px 0 !important;
+}
+
+/* Main Content Area */
+.v-main {
+  background: linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%) !important;
+}
+
+.v-container {
+  max-width: 1200px !important;
+}
+
+/* Card Styles */
+.v-card {
+  border-radius: 24px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+  border: none !important;
+}
+
+.v-card:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-2px) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Button Styles */
+.v-btn {
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 500 !important;
+  border-radius: 12px !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  transition: all 0.3s ease !important;
+}
+
+.v-btn--elevated {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.v-btn--elevated:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important;
+  transform: translateY(-1px) !important;
+}
+
+.v-btn--variant-elevated.v-btn--color-primary {
+  background: linear-gradient(135deg, #FEE881 0%, #E6D06B 100%) !important;
+  color: #172563 !important;
+}
+
+.v-btn--variant-elevated.v-btn--color-secondary {
+  background: linear-gradient(135deg, #172563 0%, #373F61 100%) !important;
+  color: #FFFFFF !important;
+}
+
+/* Table Styles */
+.v-table {
+  background: #FFFFFF !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+  border: 2px solid #F8FAFC !important;
+}
+
+.v-table > .v-table__wrapper > table {
+  border-radius: 24px !important;
+  width: 100% !important;
+}
+
+.v-table > .v-table__wrapper > table > thead > tr > th {
+  background: linear-gradient(135deg, #172563 0%, #373F61 100%) !important;
+  color: #FFFFFF !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 21px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+  padding: 32px 48px !important;
+  border: none !important;
+  border-bottom: 4px solid #FEE881 !important;
+  line-height: 1.4 !important;
+}
+
+.v-table > .v-table__wrapper > table > tbody > tr {
+  transition: all 0.3s ease !important;
+}
+
+.v-table > .v-table__wrapper > table > tbody > tr:hover {
+  background: linear-gradient(90deg, #F8FAFC 0%, #FFF5C8 50%, #F8FAFC 100%) !important;
+  transform: scale(1.005) !important;
+  box-shadow: 0 4px 20px rgba(254, 232, 129, 0.2) !important;
+}
+
+.v-table > .v-table__wrapper > table > tbody > tr > td {
+  border-bottom: 1px solid #E2E8F0 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 21px !important;
+  color: #334155 !important;
+  padding: 32px 48px !important;
+  line-height: 1.6 !important;
+  vertical-align: middle !important;
+}
+
+.v-table > .v-table__wrapper > table > tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+.v-table > .v-table__wrapper > table > tbody > tr:hover > td {
+  color: #172563 !important;
+  font-weight: 500 !important;
+}
+
+/* Dialog Styles */
+.v-dialog .v-card {
+  border-radius: 24px !important;
+  overflow: hidden !important;
+}
+
+.v-dialog .v-card-title {
+  background: linear-gradient(135deg, #172563 0%, #373F61 100%) !important;
+  color: #FFFFFF !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 28px !important;
+  padding: 24px !important;
+}
+
+.v-dialog .v-card-text {
+  padding: 32px !important;
+}
+
+.v-dialog .v-card-actions {
+  background: #F8FAFC !important;
+  padding: 24px !important;
+  gap: 16px !important;
+}
+
+/* Text Field Styles */
+.v-text-field .v-field {
+  border-radius: 12px !important;
+  border: 2px solid #E2E8F0 !important;
+}
+
+.v-text-field .v-field--focused {
+  border-color: #FEE881 !important;
+  box-shadow: 0 0 0 3px rgba(254, 232, 129, 0.2) !important;
+}
+
+.v-text-field .v-field__input {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 21px !important;
+  color: #334155 !important;
+}
+
+.v-text-field .v-label {
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 500 !important;
+  color: #373F61 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  font-size: 14px !important;
+}
+
+/* Textarea Styles */
+.v-textarea .v-field {
+  border-radius: 12px !important;
+  border: 2px solid #E2E8F0 !important;
+}
+
+.v-textarea .v-field--focused {
+  border-color: #FEE881 !important;
+  box-shadow: 0 0 0 3px rgba(254, 232, 129, 0.2) !important;
+}
+
+.v-textarea .v-field__input {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 21px !important;
+  color: #334155 !important;
+}
+
+/* Icon Styles */
+.v-icon {
+  transition: all 0.3s ease !important;
+}
+
+/* Chip Styles */
+.v-chip {
+  border-radius: 20px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 500 !important;
+}
+
+.v-chip--variant-outlined {
+  border-color: #FEE881 !important;
+  color: #172563 !important;
+}
+
+/* Progress Circular */
+.v-progress-circular {
+  color: #FEE881 !important;
+}
+
+/* Snackbar Styles */
+.v-snackbar .v-snackbar__wrapper {
+  border-radius: 16px !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.v-snackbar .v-snackbar__content {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 18px !important;
+  font-weight: 500 !important;
+}
+
+/* Responsive Overrides */
+@media (max-width: 768px) {
+  .v-application .text-h1 {
+    font-size: 56px !important;
+  }
+  
+  .v-application .text-h2 {
+    font-size: 36px !important;
+  }
+  
+  .v-application .text-h3 {
+    font-size: 24px !important;
+  }
+  
+  .v-application .text-body-1 {
+    font-size: 18px !important;
+  }
+  
+  .v-table > .v-table__wrapper > table > tbody > tr > td {
+    font-size: 16px !important;
+  }
+  
+  .v-text-field .v-field__input,
+  .v-textarea .v-field__input {
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .v-application .text-h1 {
+    font-size: 42px !important;
+  }
+  
+  .v-application .text-h2 {
+    font-size: 28px !important;
+  }
+  
+  .v-application .text-h3 {
+    font-size: 20px !important;
+  }
+  
+  .v-application .text-body-1 {
+    font-size: 16px !important;
+  }
+  
+  .v-table > .v-table__wrapper > table > tbody > tr > td {
+    font-size: 14px !important;
+  }
+  
+  .v-text-field .v-field__input,
+  .v-textarea .v-field__input {
+    font-size: 14px !important;
+  }
+}
