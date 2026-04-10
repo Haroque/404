@@ -201,6 +201,8 @@ async function loadFacilities() {
       facilitiesData = data.items;
       console.log('✓ Response has items property, found:', facilitiesData.length, 'facilities');
     } 
+
+    
     // Check if it's a direct array
     else if (Array.isArray(data)) {
       facilitiesData = data;
