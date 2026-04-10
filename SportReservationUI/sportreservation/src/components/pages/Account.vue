@@ -358,18 +358,20 @@ const stats = ref([
 }
 
 .stat-card {
-  background: var(--vt-c-white-soft);
-  border: 1px solid var(--vt-c-divider);
-  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(30, 136, 229, 0.05), rgba(0, 188, 212, 0.05));
+  border: 2px solid rgba(30, 136, 229, 0.2);
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   display: flex;
   align-items: center;
   gap: 1rem;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  border-color: var(--vt-c-primary);
+  box-shadow: var(--shadow-lg);
 }
 
 .stat-icon {
@@ -415,9 +417,9 @@ const stats = ref([
 }
 
 .tab-button.active {
-  color: var(--vt-c-yellow);
-  border-bottom-color: var(--vt-c-yellow);
-}
+  color: var(--vt-c-secondary);
+  border-bottom-color: var(--vt-c-secondary);
+}}
 
 .section-header {
   display: flex;
@@ -442,31 +444,37 @@ const stats = ref([
 }
 
 .edit-button, .change-button, .manage-button {
-  background-color: var(--vt-c-yellow);
-  color: var(--color-heading);
+  background-color: var(--vt-c-primary);
+  color: white;
+  transition: all 0.3s ease;
 }
 
 .edit-button:hover, .change-button:hover, .manage-button:hover {
-  background-color: var(--vt-c-yellow-light);
+  background-color: var(--vt-c-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .save-button {
-  background-color: #4CAF50;
+  background-color: var(--vt-c-success);
   color: white;
+  transition: all 0.3s ease;
 }
 
 .save-button:hover {
-  background-color: #45a049;
+  background-color: var(--vt-c-success-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .cancel-button {
-  background-color: var(--vt-c-white-mute);
+  background: linear-gradient(135deg, rgba(248, 249, 251, 0.8), rgba(239, 240, 245, 0.8));
   color: var(--color-heading);
   border: 1px solid var(--vt-c-divider);
 }
 
 .cancel-button:hover {
-  background-color: var(--vt-c-white-soft);
+  background: linear-gradient(135deg, rgba(248, 249, 251, 1), rgba(239, 240, 245, 1));
 }
 
 .enable-button {
@@ -510,15 +518,16 @@ const stats = ref([
   padding: 0.75rem 1rem;
   border: 1px solid var(--vt-c-divider);
   border-radius: 0.5rem;
-  background-color: var(--vt-c-white-soft);
+  background: linear-gradient(135deg, rgba(248, 249, 251, 0.8), rgba(239, 240, 245, 0.8));
   color: var(--color-text);
   transition: all 0.3s ease;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: var(--vt-c-yellow);
-  background-color: white;
+  border-color: var(--vt-c-primary);
+  background-color: linear-gradient(135deg, rgba(248, 249, 251, 1), rgba(239, 240, 245, 1));
+  box-shadow: 0 0 0 3px rgba(254, 232, 129, 0.2);
 }
 
 .form-input:disabled {
@@ -537,9 +546,15 @@ const stats = ref([
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  background: var(--vt-c-white-soft);
-  border: 1px solid var(--vt-c-divider);
-  border-radius: 1rem;
+  background: linear-gradient(135deg, var(--color-background), rgba(30, 136, 229, 0.02));
+  border: 2px solid rgba(30, 136, 229, 0.1);
+  border-radius: var(--radius-lg);
+  transition: all 0.3s ease;
+}
+
+.security-item:hover, .preference-item:hover {
+  border-color: var(--vt-c-primary);
+  box-shadow: var(--shadow-md);
 }
 
 .security-info h3, .preference-info h3 {
@@ -557,9 +572,9 @@ const stats = ref([
 
 .password-form {
   padding: 1.5rem;
-  background: var(--vt-c-white-mute);
-  border-radius: 1rem;
-  border-left: 4px solid var(--vt-c-yellow);
+  background: linear-gradient(135deg, rgba(30, 136, 229, 0.05), rgba(0, 188, 212, 0.05));
+  border-radius: var(--radius-lg);
+  border-left: 4px solid var(--vt-c-primary);
 }
 
 .form-actions {
@@ -606,7 +621,7 @@ const stats = ref([
 }
 
 input:checked + .slider {
-  background-color: var(--vt-c-yellow);
+  background-color: var(--vt-c-primary);
 }
 
 input:checked + .slider:before {
@@ -669,7 +684,7 @@ input:checked + .slider:before {
   }
   
   .tab-button.active {
-    border-bottom-color: var(--vt-c-yellow);
+    border-bottom-color: var(--vt-c-primary);
   }
   
   .form-row {
@@ -686,6 +701,185 @@ input:checked + .slider:before {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .account-container {
+    padding: 4rem 0.75rem 1rem;
+  }
+
+  .account-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .stat-icon {
+    font-size: 1.5rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+  }
+
+  .tabs {
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--vt-c-divider);
+    padding-bottom: 0;
+  }
+
+  .tab-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--vt-c-divider);
+    border-radius: 0;
+    margin-bottom: 0;
+    min-height: 44px;
+  }
+
+  .tab-button.active {
+    border-bottom: 2px solid var(--vt-c-primary);
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .section-header .edit-button {
+    align-self: flex-start;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .edit-button, .save-button, .cancel-button, .change-button, .enable-button, .manage-button {
+    min-height: 44px;
+    font-size: 0.85rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .edit-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .profile-form {
+    gap: 1rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .form-group {
+    gap: 0.375rem;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+  }
+
+  .form-input {
+    padding: 0.75rem 0.75rem;
+    font-size: 16px;
+    min-height: 44px;
+  }
+
+  .security-content, .preferences-content {
+    gap: 1rem;
+  }
+
+  .security-item, .preference-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .security-info h3, .preference-info h3 {
+    font-size: 1rem;
+  }
+
+  .security-info p, .preference-info p {
+    font-size: 0.8rem;
+  }
+
+  .password-form {
+    padding: 1rem;
+    border-left: 3px solid var(--vt-c-primary);
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .form-actions button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .switch {
+    width: 50px;
+    height: 28px;
+  }
+
+  .slider:before {
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(22px);
+  }
+
+  .danger-zone {
+    margin-top: 2rem;
+    padding: 1rem;
+  }
+
+  .danger-zone h3 {
+    font-size: 1rem;
+  }
+
+  .logout-button {
+    width: 100%;
+    min-height: 44px;
+    font-size: 0.9rem;
   }
 }
 </style>
