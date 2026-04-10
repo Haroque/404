@@ -79,9 +79,6 @@ async function validate() {
         <div class="wrapper">
             <div class="greetings">
                 <h1><span class="yellow">Sport</span>Reservation</h1>
-                <h3>
-                    Zarezervujte si sportoviště, snadno a rychle.
-                </h3>
             </div>
         </div>
     </header>
