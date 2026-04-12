@@ -2,8 +2,7 @@
 import '@/assets/main.css';
 import { ref } from 'vue';
 import Splash from '../../assets/login_splash.jpg'
-import { secureFetch } from '@/auth';
-import { useRouter } from '@/router';
+import { secureFetch, tryLogin } from '@/auth';
 
 const error = ref("")
 const errorBar = ref(false)
@@ -14,6 +13,12 @@ const password = ref("")
 const repeat = ref("")
 
 async function validate() {
+    console.log('validate() called');
+    console.log('Email:', email.value);
+    console.log('Name:', name.value);
+    console.log('Password length:', password.value.length);
+    console.log('Repeat length:', repeat.value.length);
+    
     if (email.value.length == 0) {
         error.value = "Musíte uvést email"
         errorBar.value = true
@@ -39,6 +44,7 @@ async function validate() {
         errorBar.value = true
         return
     }
+    console.log('Calling secureFetch...');
     const res = await secureFetch("/User", {
         method: 'POST',
         body: JSON.stringify({
@@ -47,8 +53,11 @@ async function validate() {
             password: password.value
         })
     })
+    console.log('Response status:', res.status);
     if (res.status != 200) {
-        switch (await res.text()) {
+        const errorText = await res.text();
+        console.log('Error text:', errorText);
+        switch (errorText) {
             case "email-invalid":
                 error.value = "Neplatný email"
                 break
@@ -61,7 +70,9 @@ async function validate() {
         errorBar.value = true
         return;
     }
-    await useRouter().push({ name: 'login' })
+    console.log('Redirecting to home...');
+    // Auto-login after registration
+    await tryLogin(email.value, password.value);
 }
 
 </script>
@@ -79,20 +90,17 @@ async function validate() {
         <div class="wrapper">
             <div class="greetings">
                 <h1><span class="yellow">Sport</span>Reservation</h1>
-                <h3>
-                    Zarezervujte si sportoviště, snadno a rychle.
-                </h3>
             </div>
         </div>
     </header>
 
     <main>
-        <form>
+        <form @submit.prevent="validate()">
             <input v-model="email" class="input-textbox" type="email" placeholder="E-mail" />
             <input v-model="name" class="input-textbox" type="text" placeholder="Jméno" />
             <input v-model="password" class="input-textbox" type="password" placeholder="Heslo" />
             <input v-model="repeat" class="input-textbox" type="password" placeholder="Zopakuj Heslo" />
-            <input  @click="validate()" class="input-submit" value="Zaregistrovat se"/>
+            <input type="submit" class="input-submit" value="Zaregistrovat se"/>
         </form>
     </main>
 </template>

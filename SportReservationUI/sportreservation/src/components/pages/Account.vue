@@ -1,113 +1,176 @@
 <script setup lang="ts">
 import '@/assets/main.css';
 import NavBar from "../views/NavBar.vue";
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from '@/router';
-
-const router = useRouter();
+import { API_URL, secureFetch, logout } from '../../auth';
+import type { UserDto, ReservationDto, UserPatchDto, UserPatchPasswordDto } from '../../lib/sportApi';
+import { formatDate, formatDateTime } from '../../lib/sportApi';
 
 interface UserProfile {
-  firstName: string;
-  lastName: string;
+  id: string;
+  fullName: string;
   email: string;
-  phone: string;
-  dateOfBirth: string;
-  address: string;
-  city: string;
-  postalCode: string;
-  memberSince: string;
-  notifications: boolean;
-  newsletter: boolean;
+  createdAt: string;
 }
 
-const profile = ref<UserProfile>({
-  firstName: 'Jan',
-  lastName: 'Novák',
-  email: 'jan.novak@example.com',
-  phone: '+420 123 456 789',
-  dateOfBirth: '1990-05-15',
-  address: 'Hlavní 123',
-  city: 'Praha',
-  postalCode: '110 00',
-  memberSince: '2023-01-15',
-  notifications: true,
-  newsletter: false
-});
+interface UserReservation {
+  id: string;
+  facilityName: string;
+  date: string;
+  time: string;
+  duration: number;
+  price: number;
+  status: 'active' | 'cancelled';
+}
 
+const router = useRouter();
+const profile = ref<UserProfile | null>(null);
+const reservations = ref<UserReservation[]>([]);
+const isLoading = ref(false);
 const isEditing = ref(false);
-const editProfile = ref<UserProfile>({ ...profile.value });
-const activeTab = ref<'profile' | 'security' | 'preferences'>('profile');
+const editProfile = ref<UserProfile | null>(null);
 const showPasswordChange = ref(false);
+const currentPassword = ref('');
+const newPassword = ref('');
+const confirmPassword = ref('');
+const passwordError = ref('');
+const saveError = ref('');
+const saveSuccess = ref(false);
+
+async function loadUserData() {
+  try {
+    isLoading.value = true;
+    const response = await secureFetch(`${API_URL}/User/Self`);
+    if (response.ok) {
+      const data: UserDto = await response.json();
+      profile.value = {
+        id: data.id,
+        fullName: data.fullName,
+        email: data.email,
+        createdAt: data.createdAt
+      };
+      editProfile.value = { ...profile.value };
+      await loadUserReservations(data.id);
+    }
+  } catch (error) {
+    console.error('Error loading user data:', error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+async function loadUserReservations(userId: string) {
+  try {
+    const response = await secureFetch(`${API_URL}/Reservation?user_id=${userId}`);
+    if (response.ok) {
+      const data: ReservationDto[] = await response.json();
+      reservations.value = data.map(r => ({
+        id: r.id,
+        facilityName: '', // Will be filled by fetching facility details if needed
+        date: formatDate(r.startAt),
+        time: formatDateTime(r.startAt).split(' ')[1] || '',
+        duration: Math.round((new Date(r.endAt).getTime() - new Date(r.startAt).getTime()) / 60000),
+        price: r.finalPrice,
+        status: r.status.toLowerCase() as 'active' | 'cancelled'
+      }));
+    }
+  } catch (error) {
+    console.error('Error loading user reservations:', error);
+  }
+}
 
 function startEditing() {
   isEditing.value = true;
-  editProfile.value = { ...profile.value };
+  if (profile.value) {
+    editProfile.value = { ...profile.value };
+  }
+  passwordError.value = '';
+  saveError.value = '';
+  saveSuccess.value = false;
 }
 
 function cancelEditing() {
   isEditing.value = false;
-  editProfile.value = { ...profile.value };
+  if (profile.value) {
+    editProfile.value = { ...profile.value };
+  }
+  currentPassword.value = '';
+  newPassword.value = '';
+  confirmPassword.value = '';
+  passwordError.value = '';
+  saveError.value = '';
 }
 
-function saveProfile() {
-  profile.value = { ...editProfile.value };
-  isEditing.value = false;
+async function saveProfile() {
+  if (!editProfile.value) return;
+  
+  try {
+    saveError.value = '';
+    saveSuccess.value = false;
+    
+    const patchDto: UserPatchDto = {
+      fullName: editProfile.value.fullName !== profile.value?.fullName ? editProfile.value.fullName : undefined,
+      email: editProfile.value.email !== profile.value?.email ? editProfile.value.email : undefined
+    };
+    
+    // Add password change if provided
+    if (newPassword.value) {
+      if (newPassword.value !== confirmPassword.value) {
+        passwordError.value = 'Hesla se neshodují';
+        return;
+      }
+      if (newPassword.value.length < 6) {
+        passwordError.value = 'Heslo musí mít alespoň 6 znaků';
+        return;
+      }
+      patchDto.password = {
+        current: currentPassword.value || null,
+        new: newPassword.value
+      };
+    }
+    
+    const response = await secureFetch(`${API_URL}/User/${profile.value?.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patchDto)
+    });
+    
+    if (response.ok) {
+      profile.value = { ...editProfile.value };
+      isEditing.value = false;
+      saveSuccess.value = true;
+      currentPassword.value = '';
+      newPassword.value = '';
+      confirmPassword.value = '';
+      showPasswordChange.value = false;
+      setTimeout(() => saveSuccess.value = false, 3000);
+    } else {
+      const error = await response.text();
+      saveError.value = error || 'Chyba při ukládání údajů';
+    }
+  } catch (error) {
+    console.error('Error saving profile:', error);
+    saveError.value = 'Chyba při ukládání údajů';
+  }
 }
 
-function logout() {
-  router.push({ name: 'login' });
-}
-
-const stats = ref([
-  { label: 'Celkem rezervací', value: '24', icon: '📅' },
-  { label: 'Aktivní rezervace', value: '3', icon: '⏰' },
-  { label: 'Členství', value: `${Math.floor((Date.now() - new Date(profile.value.memberSince).getTime()) / (1000 * 60 * 60 * 24 * 30))} měsíců`, icon: '🏆' },
-  { label: 'Utraceno', value: '4 250 Kč', icon: '💰' }
-]);
+onMounted(() => {
+  loadUserData();
+});
 </script>
 
 <template>
   <NavBar></NavBar>
   <div class="account-container">
     <div class="account-header">
-      <h1 class="page-title">Můj účet</h1>
-      <p class="page-subtitle">Správa vašeho profilu a nastavení</p>
+      <h1 class="page-title">Můj profil</h1>
+      <p class="page-subtitle">Správa vašeho profilu a rezervací</p>
     </div>
 
-    <div class="stats-grid">
-      <div v-for="stat in stats" :key="stat.label" class="stat-card">
-        <div class="stat-icon">{{ stat.icon }}</div>
-        <div class="stat-content">
-          <div class="stat-value">{{ stat.value }}</div>
-          <div class="stat-label">{{ stat.label }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="tabs">
-      <button 
-        @click="activeTab = 'profile'" 
-        :class="['tab-button', { active: activeTab === 'profile' }]"
-      >
-        Profil
-      </button>
-      <button 
-        @click="activeTab = 'security'" 
-        :class="['tab-button', { active: activeTab === 'security' }]"
-      >
-        Zabezpečení
-      </button>
-      <button 
-        @click="activeTab = 'preferences'" 
-        :class="['tab-button', { active: activeTab === 'preferences' }]"
-      >
-        Předvolby
-      </button>
-    </div>
-
-    <div class="tab-content">
-      <!-- Profile Tab -->
-      <div v-if="activeTab === 'profile'" class="profile-section">
+    <div v-if="isLoading" class="loading">Načítám údaje...</div>
+    <div v-else-if="profile">
+      <!-- Profile Section -->
+      <div class="profile-section">
         <div class="section-header">
           <h2>Osobní údaje</h2>
           <button v-if="!isEditing" @click="startEditing" class="edit-button">
@@ -119,35 +182,30 @@ const stats = ref([
           </div>
         </div>
 
+        <div class="success-message" v-if="saveSuccess">
+          Údaje byly úspěšně uloženy!
+        </div>
+        <div class="error-message" v-if="saveError">
+          {{ saveError }}
+        </div>
+
         <div class="profile-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Jméno</label>
-              <input 
-                :value="isEditing ? editProfile.firstName : profile.firstName" 
-                @input="isEditing ? editProfile.firstName = ($event.target as HTMLInputElement).value : null"
-                :disabled="!isEditing"
-                type="text" 
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>Příjmení</label>
-              <input 
-                :value="isEditing ? editProfile.lastName : profile.lastName" 
-                @input="isEditing ? editProfile.lastName = ($event.target as HTMLInputElement).value : null"
-                :disabled="!isEditing"
-                type="text" 
-                class="form-input"
-              />
-            </div>
+          <div class="form-group">
+            <label>Jméno</label>
+            <input 
+              :value="isEditing && editProfile ? editProfile.fullName : profile.fullName" 
+              @input="isEditing && editProfile ? editProfile.fullName = ($event.target as HTMLInputElement).value : null"
+              :disabled="!isEditing"
+              type="text" 
+              class="form-input"
+            />
           </div>
 
           <div class="form-group">
             <label>E-mail</label>
             <input 
-              :value="isEditing ? editProfile.email : profile.email" 
-              @input="isEditing ? editProfile.email = ($event.target as HTMLInputElement).value : null"
+              :value="isEditing && editProfile ? editProfile.email : profile.email" 
+              @input="isEditing && editProfile ? editProfile.email = ($event.target as HTMLInputElement).value : null"
               :disabled="!isEditing"
               type="email" 
               class="form-input"
@@ -155,172 +213,75 @@ const stats = ref([
           </div>
 
           <div class="form-group">
-            <label>Telefon</label>
-            <input 
-              :value="isEditing ? editProfile.phone : profile.phone" 
-              @input="isEditing ? editProfile.phone = ($event.target as HTMLInputElement).value : null"
-              :disabled="!isEditing"
-              type="tel" 
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Datum narození</label>
-            <input 
-              :value="isEditing ? editProfile.dateOfBirth : profile.dateOfBirth" 
-              @input="isEditing ? editProfile.dateOfBirth = ($event.target as HTMLInputElement).value : null"
-              :disabled="!isEditing"
-              type="date" 
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label>Adresa</label>
-            <input 
-              :value="isEditing ? editProfile.address : profile.address" 
-              @input="isEditing ? editProfile.address = ($event.target as HTMLInputElement).value : null"
-              :disabled="!isEditing"
-              type="text" 
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Město</label>
-              <input 
-                :value="isEditing ? editProfile.city : profile.city" 
-                @input="isEditing ? editProfile.city = ($event.target as HTMLInputElement).value : null"
-                :disabled="!isEditing"
-                type="text" 
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>PSČ</label>
-              <input 
-                :value="isEditing ? editProfile.postalCode : profile.postalCode" 
-                @input="isEditing ? editProfile.postalCode = ($event.target as HTMLInputElement).value : null"
-                :disabled="!isEditing"
-                type="text" 
-                class="form-input"
-              />
-            </div>
-          </div>
-
-          <div class="form-group">
             <label>Člen od</label>
             <input 
-              :value="new Date(profile.memberSince).toLocaleDateString('cs-CZ')" 
+              :value="new Date(profile.createdAt).toLocaleDateString('cs-CZ')" 
               disabled
               type="text" 
               class="form-input"
             />
           </div>
-        </div>
-      </div>
 
-      <!-- Security Tab -->
-      <div v-if="activeTab === 'security'" class="security-section">
-        <div class="section-header">
-          <h2>Zabezpečení účtu</h2>
-        </div>
-
-        <div class="security-content">
-          <div class="security-item">
-            <div class="security-info">
-              <h3>Změna hesla</h3>
-              <p>Pravidelně měňte heslo pro zabezpečení účtu</p>
-            </div>
-            <button @click="showPasswordChange = !showPasswordChange" class="change-button">
-              Změnit
-            </button>
-          </div>
-
-          <div v-if="showPasswordChange" class="password-form">
+          <div v-if="isEditing" class="password-section">
+            <h3>Změna hesla (volitelné)</h3>
             <div class="form-group">
               <label>Současné heslo</label>
-              <input type="password" class="form-input" placeholder="Zadejte současné heslo" />
+              <input v-model="currentPassword" type="password" class="form-input" placeholder="Zadejte současné heslo" />
             </div>
             <div class="form-group">
               <label>Nové heslo</label>
-              <input type="password" class="form-input" placeholder="Zadejte nové heslo" />
+              <input v-model="newPassword" type="password" class="form-input" placeholder="Zadejte nové heslo" />
             </div>
             <div class="form-group">
               <label>Potvrzení nového hesla</label>
-              <input type="password" class="form-input" placeholder="Zopakujte nové heslo" />
+              <input v-model="confirmPassword" type="password" class="form-input" placeholder="Zopakujte nové heslo" />
             </div>
-            <div class="form-actions">
-              <button @click="showPasswordChange = false" class="cancel-button">Zrušit</button>
-              <button class="save-button">Uložit heslo</button>
+            <div class="error-message" v-if="passwordError">
+              {{ passwordError }}
             </div>
-          </div>
-
-          <div class="security-item">
-            <div class="security-info">
-              <h3>Dvoufaktorové ověření</h3>
-              <p>Přidejte další vrstvu zabezpečení</p>
-            </div>
-            <button class="enable-button">Povolit</button>
-          </div>
-
-          <div class="security-item">
-            <div class="security-info">
-              <h3>Aktivní relace</h3>
-              <p>Spravujte přihlášená zařízení</p>
-            </div>
-            <button class="manage-button">Spravovat</button>
           </div>
         </div>
       </div>
 
-      <!-- Preferences Tab -->
-      <div v-if="activeTab === 'preferences'" class="preferences-section">
+      <!-- Reservations Section -->
+      <div class="reservations-section">
         <div class="section-header">
-          <h2>Předvolby</h2>
+          <h2>Moje rezervace</h2>
         </div>
 
-        <div class="preferences-content">
-          <div class="preference-item">
-            <div class="preference-info">
-              <h3>E-mailová oznámení</h3>
-              <p>Dostávejte upozornění o rezervacích a důležité zprávy</p>
+        <div v-if="reservations.length === 0" class="empty-state">
+          Nemáte žádné rezervace
+        </div>
+        <div v-else class="reservation-cards">
+          <div v-for="reservation in reservations" :key="reservation.id" class="reservation-card">
+            <div class="card-header">
+              <h4 class="facility-name">Rezervace #{{ reservation.id }}</h4>
+              <span class="status-badge" :class="reservation.status">
+                {{ reservation.status === 'active' ? 'Aktivní' : 'Zrušená' }}
+              </span>
             </div>
-            <label class="switch">
-              <input v-model="profile.notifications" type="checkbox">
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <div class="preference-item">
-            <div class="preference-info">
-              <h3>Newsletter</h3>
-              <p>Přihlaste se k odběru novinek a speciálních nabídek</p>
+            
+            <div class="card-details">
+              <div class="detail-row">
+                <span class="detail-icon">📅</span>
+                <span class="detail-text">{{ reservation.date }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-icon">⏰</span>
+                <span class="detail-text">{{ reservation.time }} ({{ reservation.duration }} min)</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-icon">💰</span>
+                <span class="detail-text">{{ reservation.price }} Kč</span>
+              </div>
             </div>
-            <label class="switch">
-              <input v-model="profile.newsletter" type="checkbox">
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <div class="preference-item">
-            <div class="preference-info">
-              <h3>Jazyk</h3>
-              <p>Vyberte preferovaný jazyk rozhraní</p>
-            </div>
-            <select class="form-input" style="width: 150px;">
-              <option value="cs">Čeština</option>
-              <option value="en">English</option>
-            </select>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="danger-zone">
-      <button @click="logout" class="logout-button">Odhlásit se</button>
+      <div class="danger-zone">
+        <button @click="logout" class="logout-button">Odhlásit se</button>
+      </div>
     </div>
   </div>
 </template>
@@ -350,73 +311,19 @@ const stats = ref([
   opacity: 0.8;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-text);
+  opacity: 0.8;
 }
 
-.stat-card {
+.profile-section, .reservations-section {
   background: var(--vt-c-white-soft);
   border: 1px solid var(--vt-c-divider);
   border-radius: 1rem;
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: transform 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-}
-
-.stat-icon {
-  font-size: 2rem;
-  opacity: 0.8;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--color-heading);
-}
-
-.stat-label {
-  font-size: 0.875rem;
-  color: var(--color-text);
-  opacity: 0.8;
-}
-
-.tabs {
-  display: flex;
-  gap: 1rem;
+  padding: 2rem;
   margin-bottom: 2rem;
-  border-bottom: 2px solid var(--vt-c-divider);
-  padding-bottom: 0;
-}
-
-.tab-button {
-  padding: 1rem 1.5rem;
-  background: none;
-  border: none;
-  border-bottom: 3px solid transparent;
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--color-text);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: -2px;
-}
-
-.tab-button:hover {
-  color: var(--color-heading);
-}
-
-.tab-button.active {
-  color: var(--vt-c-yellow);
-  border-bottom-color: var(--vt-c-yellow);
 }
 
 .section-header {
@@ -432,7 +339,7 @@ const stats = ref([
   color: var(--color-heading);
 }
 
-.edit-button, .save-button, .cancel-button, .change-button, .enable-button, .manage-button {
+.edit-button, .save-button, .cancel-button {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 0.5rem;
@@ -441,12 +348,12 @@ const stats = ref([
   transition: all 0.3s ease;
 }
 
-.edit-button, .change-button, .manage-button {
+.edit-button {
   background-color: var(--vt-c-yellow);
   color: var(--color-heading);
 }
 
-.edit-button:hover, .change-button:hover, .manage-button:hover {
+.edit-button:hover {
   background-color: var(--vt-c-yellow-light);
 }
 
@@ -469,30 +376,33 @@ const stats = ref([
   background-color: var(--vt-c-white-soft);
 }
 
-.enable-button {
-  background-color: #2196F3;
-  color: white;
-}
-
-.enable-button:hover {
-  background-color: #1976D2;
-}
-
 .edit-actions {
   display: flex;
   gap: 0.5rem;
+}
+
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid #c3e6cb;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid #f5c6cb;
 }
 
 .profile-form {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
 }
 
 .form-group {
@@ -526,93 +436,94 @@ const stats = ref([
   cursor: not-allowed;
 }
 
-.security-content, .preferences-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+.password-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--vt-c-divider);
 }
 
-.security-item, .preference-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  background: var(--vt-c-white-soft);
-  border: 1px solid var(--vt-c-divider);
-  border-radius: 1rem;
-}
-
-.security-info h3, .preference-info h3 {
+.password-section h3 {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--color-heading);
-  margin-bottom: 0.25rem;
+  margin-bottom: 1rem;
 }
 
-.security-info p, .preference-info p {
+.reservation-cards {
+  display: grid;
+  gap: 1rem;
+}
+
+.reservation-card {
+  background: var(--vt-c-white);
+  border: 1px solid var(--vt-c-divider);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.reservation-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.facility-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  margin: 0;
+}
+
+.status-badge {
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background-color: #2196F3;
+}
+
+.status-badge.cancelled {
+  background-color: #F44336;
+}
+
+.card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.detail-icon {
+  font-size: 1.1rem;
+  opacity: 0.7;
+}
+
+.detail-text {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
   color: var(--color-text);
   opacity: 0.8;
-  font-size: 0.9rem;
 }
-
-.password-form {
-  padding: 1.5rem;
-  background: var(--vt-c-white-mute);
-  border-radius: 1rem;
-  border-left: 4px solid var(--vt-c-yellow);
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 60px;
-  height: 34px;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: .4s;
-  border-radius: 34px;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 26px;
-  width: 26px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
-}
-
-input:checked + .slider {
-  background-color: var(--vt-c-yellow);
-}
-
-input:checked + .slider:before {
-  transform: translateX(26px);
-}
-
 .danger-zone {
   margin-top: 3rem;
   padding: 2rem;
@@ -620,17 +531,6 @@ input:checked + .slider:before {
   border: 1px solid #FED7D7;
   border-radius: 1rem;
   text-align: center;
-}
-
-.danger-zone h3 {
-  color: #E53E3E;
-  margin-bottom: 0.5rem;
-}
-
-.danger-zone p {
-  color: var(--color-text);
-  opacity: 0.8;
-  margin-bottom: 1.5rem;
 }
 
 .logout-button {

@@ -34,23 +34,38 @@ export async function logout() {
 export async function secureFetch(path: string, data: any = {}): Promise<Response> {
     const header = localStorage.getItem(CREDS)
 
+    if (!data.headers) {
+        data.headers = {};
+    }
+    
+    // Always set Content-Type for JSON requests
+    if (data.body) {
+        data.headers['Content-Type'] = "application/json";
+    }
+
     if (header != null) {
-        if (!data.headers) {
-            data.headers = {};
-        }
         data.headers['Authorization'] = 'Basic ' + header
-        data.headers['Content-Type'] = "application/json"
     }
 
-    const res = await fetch(API_URL + path, data);
+    const fullUrl = API_URL + path;
+    console.log('secureFetch calling:', fullUrl);
+    console.log('Request data:', data);
+    
+    try {
+        const res = await fetch(fullUrl, data);
+        console.log('secureFetch response status:', res.status);
 
-    if (res.status == 401) {
-        await useRouter().push({name: 'login'})
+        if (res.status == 401) {
+            await useRouter().push({name: 'login'})
+            return res
+        }
+        if (res.status == 403) {
+            await useRouter().push({name: 'home'})
+            return res
+        }
         return res
+    } catch (error) {
+        console.error('secureFetch error:', error);
+        throw error;
     }
-    if (res.status == 403) {
-        await useRouter().push({name: 'home'})
-        return res
-    }
-    return res
 }

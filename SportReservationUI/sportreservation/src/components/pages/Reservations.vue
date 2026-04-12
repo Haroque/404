@@ -2,7 +2,10 @@
 import '@/assets/main.css';
 import NavBar from "../views/NavBar.vue";
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from '@/router';
+import { useRouter, useRoute } from 'vue-router';
+import { API_URL, secureFetch } from '../../auth';
+import type { FacilityComplexDto, ReservationDto, DowntimeDto, CreateReservationDto } from '../../lib/sportApi';
+import { formatDate, formatDateTime, buildDayRange, startOfDay, addHours, toIsoLocal, overlaps } from '../../lib/sportApi';
 
 interface CalendarSlot {
   time: string;
@@ -53,68 +56,24 @@ interface TimeSlot {
 }
 
 interface Reservation {
-  id: number;
+  id: string;
+  facilityId: string;
   facilityName: string;
   date: string;
   time: string;
   duration: number;
   price: number;
-  status: 'completed' | 'cancelled';
+  status: 'active' | 'cancelled';
   isCurrentUser?: boolean;
+  startAt: string;
+  endAt: string;
 }
 
-const reservations = ref<Reservation[]>([
-  {
-    id: 1,
-    facilityName: 'Hala A - Badminton',
-    date: '10.04.2024',
-    time: '18:00',
-    duration: 60,
-    price: 300,
-    status: 'completed',
-    isCurrentUser: true
-  },
-  {
-    id: 2,
-    facilityName: 'Kurt č. 3 - Tenis',
-    date: '20.04.2024',
-    time: '10:00',
-    duration: 120,
-    price: 600,
-    status: 'completed',
-    isCurrentUser: false
-  },
-  {
-    id: 3,
-    facilityName: 'Kurt č. 1 - Tenis',
-    date: '08.04.2026',
-    time: '14:00',
-    duration: 60,
-    price: 300,
-    status: 'completed',
-    isCurrentUser: false
-  },
-  {
-    id: 4,
-    facilityName: 'Kurt č. 1 - Tenis',
-    date: '08.04.2026',
-    time: '16:00',
-    duration: 60,
-    price: 300,
-    status: 'completed',
-    isCurrentUser: true
-  },
-  {
-    id: 5,
-    facilityName: 'Hala A - Badminton',
-    date: '09.04.2026',
-    time: '10:00',
-    duration: 60,
-    price: 250,
-    status: 'completed',
-    isCurrentUser: false
-  }
-]);
+const reservations = ref<Reservation[]>([]);
+const downtimes = ref<DowntimeDto[]>([]);
+const currentUserId = ref<string | null>(null);
+const isLoadingReservations = ref(false);
+const isLoadingDowntimes = ref(false);
 
 const facilities = ref<Facility[]>([]);
 const priceListCache = ref<Map<string, PriceList>>(new Map());
@@ -154,7 +113,7 @@ const highlightedSlot = ref<{date: string, time: string} | null>(null);
 
 // Computed property for filtered reservations
 const filteredReservations = computed(() => {
-  let filtered = reservations.value.filter(r => r.status === 'completed' && r.isCurrentUser);
+  let filtered = reservations.value.filter(r => r.status === 'active' && r.isCurrentUser);
   
   if (reservationFilterDate.value) {
     filtered = filtered.filter(r => r.date === reservationFilterDate.value);
@@ -300,8 +259,10 @@ async function loadPriceForFacilityType(facilityTypeId: string) {
         return isActive;
       }) || prices[0];
       
-      console.log(`   ✓ Selected price: ${activePrice.pricePerHour} Kč (valid from ${activePrice.validFrom} to ${activePrice.validTo})`);
-      priceListCache.value.set(facilityTypeId, activePrice);
+      if (activePrice) {
+        console.log(`   ✓ Selected price: ${activePrice.pricePerHour} Kč (valid from ${activePrice.validFrom} to ${activePrice.validTo})`);
+        priceListCache.value.set(facilityTypeId, activePrice);
+      }
     } else {
       console.warn(`⚠️ No prices found for facility type ${facilityTypeId}`);
     }
@@ -336,18 +297,101 @@ function getImageForFacilityType(typeName?: string): string {
   return typeMap[typeName] || '🏟️';
 }
 
+const route = useRoute();
+
 // Load facilities on component mount
-onMounted(() => {
-  loadFacilities();
+onMounted(async () => {
+  await loadFacilities();
+  
+  // Check if facility_id is in query params
+  const facilityId = route.query.facility_id as string;
+  if (facilityId) {
+    const facility = facilities.value.find(f => f.id === facilityId);
+    if (facility) {
+      selectedFacility.value = facility;
+      await loadReservationsForFacility(facilityId);
+      await loadDowntimesForFacility(facilityId);
+      await loadCurrentUserReservations();
+    }
+  }
 });
 
+async function loadReservationsForFacility(facilityId: string) {
+  try {
+    isLoadingReservations.value = true;
+    const response = await secureFetch(`${API_URL}/Reservation?facility_id=${facilityId}`);
+    if (response.ok) {
+      const data: ReservationDto[] = await response.json();
+      reservations.value = data.map(r => ({
+        id: r.id,
+        facilityId: r.facilityId,
+        facilityName: facilities.value.find(f => f.id === r.facilityId)?.name || 'Unknown',
+        date: formatDate(r.startAt),
+        time: formatDateTime(r.startAt).split(' ')[1] || '',
+        duration: Math.round((new Date(r.endAt).getTime() - new Date(r.startAt).getTime()) / 60000),
+        price: r.finalPrice,
+        status: r.status.toLowerCase() as 'active' | 'cancelled',
+        isCurrentUser: r.userId === currentUserId.value,
+        startAt: r.startAt,
+        endAt: r.endAt
+      }));
+      weekDays.value = getWeekDays();
+    }
+  } catch (error) {
+    console.error('Error loading reservations:', error);
+  } finally {
+    isLoadingReservations.value = false;
+  }
+}
 
-function cancelReservation(id: number) {
-  const index = reservations.value.findIndex(r => r.id === id);
-  if (index !== -1 && reservations.value[index]) {
-    reservations.value[index].status = 'cancelled';
-    // Refresh calendar to show the slot as available
-    weekDays.value = getWeekDays();
+async function loadDowntimesForFacility(facilityId: string) {
+  try {
+    isLoadingDowntimes.value = true;
+    const response = await secureFetch(`${API_URL}/Downtime?facility_id=${facilityId}`);
+    if (response.ok) {
+      downtimes.value = await response.json();
+      weekDays.value = getWeekDays();
+    }
+  } catch (error) {
+    console.error('Error loading downtimes:', error);
+  } finally {
+    isLoadingDowntimes.value = false;
+  }
+}
+
+async function loadCurrentUserReservations() {
+  try {
+    const response = await secureFetch(`${API_URL}/User/Self`);
+    if (response.ok) {
+      const user = await response.json();
+      currentUserId.value = user.id;
+      
+      // Update isCurrentUser for all reservations
+      reservations.value.forEach(r => {
+        r.isCurrentUser = r.facilityId === user.id;
+      });
+      weekDays.value = getWeekDays();
+    }
+  } catch (error) {
+    console.error('Error loading current user:', error);
+  }
+}
+
+
+async function cancelReservation(id: string) {
+  try {
+    const response = await secureFetch(`${API_URL}/Reservation/${id}/cancel`, {
+      method: 'POST'
+    });
+    if (response.ok) {
+      const index = reservations.value.findIndex(r => r.id === id);
+      if (index !== -1 && reservations.value[index]) {
+        reservations.value[index].status = 'cancelled';
+        weekDays.value = getWeekDays();
+      }
+    }
+  } catch (error) {
+    console.error('Error cancelling reservation:', error);
   }
 }
 
@@ -357,14 +401,17 @@ function createReservation() {
   }
 
   const newReservation: Reservation = {
-    id: reservations.value.length + 1,
+    id: String(reservations.value.length + 1),
+    facilityId: selectedFacility.value.id,
     facilityName: selectedFacility.value.name,
     date: selectedDate.value,
     time: selectedTime.value,
     duration: selectedDuration.value,
     price: (selectedFacility.value.pricePerHour * selectedDuration.value) / 60,
-    status: 'completed',
-    isCurrentUser: true
+    status: 'active',
+    isCurrentUser: true,
+    startAt: '',
+    endAt: ''
   };
 
   reservations.value.unshift(newReservation);
@@ -377,9 +424,11 @@ function createReservation() {
   showCreateForm.value = false;
 }
 
-function selectFacility(facility: Facility) {
+async function selectFacility(facility: Facility) {
   selectedFacility.value = facility;
   selectedSlots.value = [];
+  await loadReservationsForFacility(facility.id);
+  await loadDowntimesForFacility(facility.id);
   weekDays.value = getWeekDays();
 }
 
@@ -405,53 +454,40 @@ function calculatePrice() {
 function getWeekDays(): CalendarDay[] {
   const days = [];
   const dayNames = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
+  const weekRange = buildDayRange(currentWeekStart.value, 7);
   
-  console.log('getWeekDays called, selectedFacility:', selectedFacility.value?.name);
-  console.log('Current week start:', currentWeekStart.value);
-  
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(currentWeekStart.value);
-    date.setDate(currentWeekStart.value.getDate() + i);
+  for (let i = 0; i < weekRange.length; i++) {
+    const date = weekRange[i];
+    if (!date) continue;
     
-    const dateStr = date.toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const dateStr = formatDate(date);
     const slots: CalendarSlot[] = [];
     
     hours.value.forEach(hour => {
       const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+      const slotStart = addHours(startOfDay(date), hour);
+      const slotEnd = addHours(slotStart, 1);
       
       // Check if this slot is occupied by existing reservations
       const occupiedReservation = reservations.value.find(reservation => {
         if (reservation.status === 'cancelled') return false;
+        if (selectedFacility.value && reservation.facilityId !== selectedFacility.value.id) return false;
         
-        // Don't filter by facility when no facility is selected - show all reservations
-        if (selectedFacility.value && reservation.facilityName !== selectedFacility.value.name) return false;
+        const reservationStart = new Date(reservation.startAt);
+        const reservationEnd = new Date(reservation.endAt);
         
-        // Check if this time slot falls within a reservation
-        const reservationStart = new Date(`${reservation.date} ${reservation.time}`);
-        const reservationEnd = new Date(reservationStart.getTime() + reservation.duration * 60000);
-        const slotTime = new Date(`${dateStr} ${timeStr}`);
-        const slotEndTime = new Date(slotTime.getTime() + 60 * 60000); // 1 hour slot
-        
-        const isMatch = reservation.date === dateStr && 
-                       slotTime < reservationEnd && 
-                       slotEndTime > reservationStart;
-        
-        // Debug logging for specific dates
-        if (dateStr === '08.04.2026' && timeStr === '14:00') {
-          console.log('Checking slot 08.04.2026 14:00:', {
-            reservation,
-            isMatch,
-            facilityMatch: !selectedFacility.value || reservation.facilityName === selectedFacility.value.name,
-            dateMatch: reservation.date === dateStr,
-            timeOverlap: slotTime < reservationEnd && slotEndTime > reservationStart,
-            selectedFacility: selectedFacility.value?.name
-          });
-        }
-        
-        return isMatch;
+        return overlaps(slotStart, slotEnd, reservationStart, reservationEnd);
       });
       
-      const isOccupied = !!occupiedReservation;
+      // Check if this slot is in a downtime (closed)
+      const isClosed = downtimes.value.some((downtime: DowntimeDto) => {
+        if (selectedFacility.value && downtime.facilityId !== selectedFacility.value.id) return false;
+        const downtimeStart = new Date(downtime.startAt);
+        const downtimeEnd = new Date(downtime.endAt);
+        return overlaps(slotStart, slotEnd, downtimeStart, downtimeEnd);
+      });
+      
+      const isOccupied = !!occupiedReservation || isClosed;
       const isSelected = selectedSlots.value.some(slot => slot.date === dateStr && slot.time === timeStr);
       const isHighlighted = highlightedSlot.value?.date === dateStr && highlightedSlot.value?.time === timeStr;
       
@@ -507,7 +543,7 @@ function toggleSlot(date: string, time: string) {
   
   // Check if this slot is occupied by any user (current or other)
   const occupiedReservation = reservations.value.find(reservation => 
-    reservation.status === 'completed' && 
+    reservation.status === 'active' && 
     reservation.date === date && 
     reservation.time === time
   );
@@ -531,38 +567,69 @@ function toggleSlot(date: string, time: string) {
   weekDays.value = getWeekDays();
 }
 
-function confirmReservation() {
+async function confirmReservation() {
   if (selectedSlots.value.length === 0 || !selectedFacility.value) return;
   
-  // Create separate reservation for each selected slot
-  selectedSlots.value.forEach(slot => {
-    const newReservation: Reservation = {
-      id: reservations.value.length + Math.floor(Math.random() * 1000), // Generate unique ID
-      facilityName: selectedFacility.value!.name,
-      date: slot.date,
-      time: slot.time,
-      duration: 60, // Each slot is 1 hour
-      price: selectedFacility.value!.pricePerHour,
-      status: 'completed',
-      isCurrentUser: true
-    };
+  try {
+    // Create separate reservation for each selected slot
+    for (const slot of selectedSlots.value) {
+      const dateParts = slot.date.split('.').map(p => parseInt(p));
+      const day = dateParts[0];
+      const month = dateParts[1];
+      const year = dateParts[2];
+      const [hour, minute] = slot.time.split(':').map(Number);
+      
+      if (day === undefined || month === undefined || year === undefined || hour === undefined) {
+        console.error('Invalid date or time format:', slot);
+        continue;
+      }
+      
+      const startAt = toIsoLocal(new Date(year, month - 1, day, hour, minute));
+      const endAt = toIsoLocal(new Date(year, month - 1, day, hour + 1, minute));
+      
+      const createDto: CreateReservationDto = {
+        facilityId: selectedFacility.value.id,
+        startAt,
+        endAt
+      };
+      
+      const response = await secureFetch(`${API_URL}/Reservation`, {
+        method: 'POST',
+        body: JSON.stringify(createDto)
+      });
+      
+      if (response.ok) {
+        const newReservation: ReservationDto = await response.json();
+        const facility = facilities.value.find(f => f.id === newReservation.facilityId);
+        reservations.value.unshift({
+          id: newReservation.id,
+          facilityId: newReservation.facilityId,
+          facilityName: facility?.name || 'Unknown',
+          date: formatDate(newReservation.startAt),
+          time: formatDateTime(newReservation.startAt).split(' ')[1] || '',
+          duration: Math.round((new Date(newReservation.endAt).getTime() - new Date(newReservation.startAt).getTime()) / 60000),
+          price: newReservation.finalPrice,
+          status: newReservation.status.toLowerCase() as 'active' | 'cancelled',
+          isCurrentUser: true,
+          startAt: newReservation.startAt,
+          endAt: newReservation.endAt
+        });
+      }
+    }
     
-    reservations.value.unshift(newReservation);
-  });
-  
-  // Reset form
-  selectedSlots.value = [];
-  // Don't reset selectedFacility to keep same facility selected
-  // showCreateForm.value = false; // Keep calendar visible
-  // activeTab.value = 'create'; // Stay on create tab
-  
-  // Refresh calendar to show new reservations
-  weekDays.value = getWeekDays();
+    // Reset form
+    selectedSlots.value = [];
+    
+    // Refresh calendar to show new reservations
+    weekDays.value = getWeekDays();
+  } catch (error) {
+    console.error('Error creating reservation:', error);
+  }
 }
 
 function getStatusColor(status: string) {
   switch (status) {
-    case 'completed': return '#2196F3';
+    case 'active': return '#2196F3';
     case 'cancelled': return '#F44336';
     default: return '#757575';
   }
@@ -570,8 +637,8 @@ function getStatusColor(status: string) {
 
 function getStatusText(status: string) {
   switch (status) {
-    case 'completed': return 'Dokončeno';
-    case 'cancelled': return 'Zrušeno';
+    case 'active': return 'Aktivní';
+    case 'cancelled': return 'Zrušená';
     default: return 'Neznámý';
   }
 }
@@ -737,7 +804,7 @@ function navigateToReservation(reservation: Reservation) {
             <label class="filter-label">Filtrovat podle dne:</label>
             <select v-model="reservationFilterDate" class="date-filter">
               <option value="">Všechny dny</option>
-              <option v-for="date in [...new Set(reservations.filter(r => r.status === 'completed' && r.isCurrentUser).map(r => r.date))]" 
+              <option v-for="date in [...new Set(reservations.filter(r => r.status === 'active' && r.isCurrentUser).map(r => r.date))]" 
                       :key="date" :value="date">
                 {{ date }}
               </option>
