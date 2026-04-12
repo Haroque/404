@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { RouterView, RouterLink } from 'vue-router'
-import { secureFetch } from "@/auth.ts"
+import { secureFetch, logout } from "@/auth.ts"
 
 interface Self {
   fullName: string
@@ -95,7 +95,7 @@ onMounted(async () => {
             <v-icon size="24" color="#FEE881" class="user-icon">mdi-account-circle</v-icon>
             <span class="user-name">{{ self.fullName || 'Admin' }}</span>
           </div>
-          <button class="leyend-logout-btn">
+          <button class="leyend-logout-btn" @click="logout">
             <v-icon size="20" class="mr-2">mdi-logout</v-icon>
             Odhlásit
           </button>
@@ -173,7 +173,7 @@ onMounted(async () => {
             <v-icon size="20" class="mr-2">mdi-account-circle</v-icon>
             {{ self.fullName || 'Admin' }}
           </button>
-          <button class="leyend-button-logout mobile-btn">
+          <button class="leyend-button-logout mobile-btn" @click="logout">  
             <v-icon size="20" class="mr-2">mdi-logout</v-icon>
             Odhlásit
           </button>
