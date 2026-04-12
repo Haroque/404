@@ -259,7 +259,7 @@ onMounted(async () => {
 }
 
 .leyend-brand-name {
-  font-family: 'Leyend', serif;
+  font-family: 'Inter', sans-serif;
   font-size: 24px;
   font-weight: 500;
   color: #FFFFFF;
