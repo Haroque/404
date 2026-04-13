@@ -17,6 +17,13 @@ public class AuthMiddleware(RequestDelegate next)
             await next(context);
             return;
         }
+
+        // Allow OPTIONS requests for CORS preflight
+        if (context.Request.Method == "OPTIONS")
+        {
+            await next(context);
+            return;
+        }
         
         if (context.GetEndpoint()?.Metadata.GetMetadata<IAllowAnonymous>() != null)
         {

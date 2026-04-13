@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SportReservation.Middlewares;
 using SportReservation.Models;
 using SportReservation.Services;
@@ -19,6 +20,7 @@ public class PriceListController(PriceListService priceService) : ControllerBase
     }
     
     [HttpGet("{facilityTypeId:guid}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetByFacilityType(Guid facilityTypeId, [FromQuery] bool onlyActive = false)
     {
         // admin vidí vše + filtr

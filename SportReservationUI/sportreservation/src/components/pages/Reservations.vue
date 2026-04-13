@@ -740,28 +740,36 @@ function navigateToReservation(reservation: Reservation) {
             </ul>
           </div>
 
-          <div class="facility-info-banner" v-if="selectedFacility">
-            <div class="facility-banner-content">
-              <div class="facility-icon">{{ selectedFacility.image }}</div>
-              <div class="facility-details">
-                <h3>{{ selectedFacility.name }}</h3>
-                <p>{{ selectedFacility.type?.name }} • {{ selectedFacility.pricePerHour }} Kč/hod</p>
-                <p class="description">{{ selectedFacility.type?.description }}</p>
-              </div>
+          <div v-if="!selectedFacility" class="no-facility-warning">
+            <div class="warning-box">
+              <span class="warning-icon">⚠️</span>
+              <p>Vyberte prosím sportoviště pro zobrazení kalendáře a možnost rezervace</p>
             </div>
           </div>
 
-          <div class="calendar-header">
-            <button @click="prevWeek" class="nav-button">←</button>
-            <h3>{{ formattedDateRange() }}</h3>
-            <button @click="nextWeek" class="nav-button">→</button>
-          </div>
-          <div class="calendar-grid">
-            <div class="time-column">
+          <template v-else>
+            <div class="facility-info-banner">
+              <div class="facility-banner-content">
+                <div class="facility-icon">{{ selectedFacility.image }}</div>
+                <div class="facility-details">
+                  <h3>{{ selectedFacility.name }}</h3>
+                  <p>{{ selectedFacility.type?.name }} • {{ selectedFacility.pricePerHour }} Kč/hod</p>
+                  <p class="description">{{ selectedFacility.type?.description }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="calendar-header">
+              <button @click="prevWeek" class="nav-button">←</button>
+              <h3>{{ formattedDateRange() }}</h3>
+              <button @click="nextWeek" class="nav-button">→</button>
+            </div>
+            <div class="calendar-grid">
+              <div class="time-column">
               <div class="time-slot-header"></div>
               <div v-for="hour in hours" :key="hour" class="time-slot">{{ hour }}:00</div>
-            </div>
-            <div v-for="day in weekDays" :key="day.date" class="day-column">
+              </div>
+              <div v-for="day in weekDays" :key="day.date" class="day-column">
               <div class="day-header">
                 <span class="day-name">{{ day.name }}</span>
                 <span class="day-date">{{ day.date }}</span>
@@ -772,27 +780,27 @@ function navigateToReservation(reservation: Reservation) {
                   :key="slot.time"
                   :class="['calendar-slot', { occupied: slot.occupied, free: !slot.occupied, selected: slot.selected, 'current-user': slot.isCurrentUser, 'confirmed-reservation': slot.occupied && slot.isCurrentUser, highlighted: slot.highlighted }]"
                   @click="toggleSlot(day.date, slot.time)"
-                >
-                </div>
+                ></div>
+              </div>
               </div>
             </div>
-          </div>
-          <div class="legend">
-            <div class="legend-item"><span class="color-box occupied"></span> Obsazeno ostatními</div>
-            <div class="legend-item"><span class="color-box occupied current-user"></span> Vaše rezervace</div>
-            <div class="legend-item"><span class="color-box free"></span> Volné</div>
-            <div class="legend-item"><span class="color-box selected"></span> Vámi vybrané</div>
-            <div class="legend-item"><span class="color-box highlighted"></span> Zvýrazněná rezervace</div>
-          </div>
-          <div class="selected-summary" v-if="selectedSlots.length > 0">
-            <h4>Vybrané sloty: {{ selectedSlots.length }}</h4>
-            <p>Celková cena: {{ selectedSlots.length * (selectedFacility?.pricePerHour || 0) }} Kč</p>
-          </div>
-          <div class="form-actions">
-            <button @click="confirmReservation" class="create-button" :disabled="selectedSlots.length === 0">
-              Potvrdit vybranou rezervaci
-            </button>
-          </div>
+            <div class="legend">
+              <div class="legend-item"><span class="color-box occupied"></span> Obsazeno ostatními</div>
+              <div class="legend-item"><span class="color-box occupied current-user"></span> Vaše rezervace</div>
+              <div class="legend-item"><span class="color-box free"></span> Volné</div>
+              <div class="legend-item"><span class="color-box selected"></span> Vámi vybrané</div>
+              <div class="legend-item"><span class="color-box highlighted"></span> Zvýrazněná rezervace</div>
+            </div>
+            <div class="selected-summary" v-if="selectedSlots.length > 0">
+              <h4>Vybrané sloty: {{ selectedSlots.length }}</h4>
+              <p>Celková cena: {{ selectedSlots.length * (selectedFacility?.pricePerHour || 0) }} Kč</p>
+            </div>
+            <div class="form-actions">
+              <button @click="confirmReservation" class="create-button" :disabled="selectedSlots.length === 0">
+                Potvrdit vybranou rezervaci
+              </button>
+            </div>
+          </template>
         </div>
         
         <!-- Side panel for own reservations only -->

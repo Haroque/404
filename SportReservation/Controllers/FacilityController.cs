@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SportReservation.Middlewares;
 using SportReservation.Models;
@@ -10,6 +11,7 @@ namespace SportReservation.Controllers;
 public class FacilityController(FacilityService facilityService) : ControllerBase
 {
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> GetAll(
         [FromQuery(Name = "page")] int page = 1,
         [FromQuery(Name = "per_page")] int perPage = 10,
