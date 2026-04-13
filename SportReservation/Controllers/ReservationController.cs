@@ -7,11 +7,11 @@ namespace SportReservation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ReservationsController : ControllerBase
+public class ReservationController : ControllerBase
 {
     private readonly ReservationService _svc;
 
-    public ReservationsController(ReservationService svc)
+    public ReservationController(ReservationService svc)
     {
         _svc = svc;
     }
