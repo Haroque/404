@@ -77,7 +77,21 @@ app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
-    scope.ServiceProvider.GetRequiredService<AppDbContext>()!.Database.Migrate();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>()!;
+
+    if (db.Database.IsSqlite())
+    {
+        try
+        {
+            db.Database.ExecuteSqlRaw("DELETE FROM \"__EFMigrationsLock\" WHERE \"Id\" = 1;");
+        }
+        catch
+        {
+            // Lock table might not exist yet on first run.
+        }
+    }
+
+    db.Database.Migrate();
 }
 
 if (args.Length > 0)

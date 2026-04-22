@@ -283,6 +283,12 @@ onMounted(() => {
         <button @click="logout" class="logout-button">Odhlásit se</button>
       </div>
     </div>
+    <div v-else class="load-error-state">
+      <p>Nepodařilo se načíst profil. Zkuste se odhlásit a přihlásit znovu.</p>
+      <div class="danger-zone">
+        <button @click="logout" class="logout-button">Odhlásit se</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -316,6 +322,12 @@ onMounted(() => {
   padding: 2rem;
   color: var(--color-text);
   opacity: 0.8;
+}
+
+.load-error-state {
+  text-align: center;
+  color: var(--color-text);
+  padding: 2rem;
 }
 
 .profile-section, .reservations-section {

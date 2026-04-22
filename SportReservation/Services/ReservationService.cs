@@ -53,6 +53,12 @@ public class ReservationService
 
     public async Task<Reservation> CreateReservationAsync(Guid userId, Guid facilityId, DateTime startAt, DateTime endAt)
     {
+        if (startAt < DateTime.Now)
+            throw new BadHttpRequestException("past-slot");
+
+        if (endAt <= startAt)
+            throw new BadHttpRequestException("invalid-timespan");
+
         bool collision = await _db.Reservations.AnyAsync(r =>
             r.FacilityId == facilityId &&
             r.Status == ReservationStatus.Active &&
@@ -125,6 +131,9 @@ public class ReservationService
 
         if (user.Role != UserRole.Admin && r.UserId != user.Id)
             throw new BadHttpRequestException("forbidden", StatusCodes.Status403Forbidden);
+
+        if (user.Role != UserRole.Admin && r.StartAt.Date <= DateTime.Today)
+            throw new BadHttpRequestException("same-day-cancel-not-allowed");
 
         r.CancelledAt = DateTime.UtcNow;
         r.Status = ReservationStatus.Cancelled;

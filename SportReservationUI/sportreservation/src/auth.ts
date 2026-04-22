@@ -47,7 +47,7 @@ export async function secureFetch(path: string, data: any = {}): Promise<Respons
         data.headers['Authorization'] = 'Basic ' + header
     }
 
-    const fullUrl = API_URL + path;
+    const fullUrl = path.startsWith('http') ? path : API_URL + path;
     console.log('secureFetch calling:', fullUrl);
     console.log('Request data:', data);
     

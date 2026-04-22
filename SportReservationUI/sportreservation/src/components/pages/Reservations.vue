@@ -57,6 +57,7 @@ interface TimeSlot {
 
 interface Reservation {
   id: string;
+  userId: string;
   facilityId: string;
   facilityName: string;
   date: string;
@@ -105,7 +106,7 @@ const selectedDate = ref('');
 const selectedTime = ref('');
 const selectedDuration = ref(60);
 const showCreateForm = ref(true);
-const currentWeekStart = ref(new Date());
+const currentWeekStart = ref(startOfWeekMonday(new Date()));
 const selectedSlots = ref<Array<{date: string, time: string}>>([]);
 const hours = ref([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 const reservationFilterDate = ref('');
@@ -297,10 +298,22 @@ function getImageForFacilityType(typeName?: string): string {
   return typeMap[typeName] || '🏟️';
 }
 
+const weekdayNames = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
+
+function startOfWeekMonday(value: Date): Date {
+  const date = new Date(value);
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
 const route = useRoute();
 
 // Load facilities on component mount
 onMounted(async () => {
+  await loadCurrentUserReservations();
   await loadFacilities();
   
   // Check if facility_id is in query params
@@ -311,7 +324,16 @@ onMounted(async () => {
       selectedFacility.value = facility;
       await loadReservationsForFacility(facilityId);
       await loadDowntimesForFacility(facilityId);
-      await loadCurrentUserReservations();
+      return;
+    }
+  }
+
+  if (!selectedFacility.value && facilities.value.length > 0) {
+    const firstFacility = facilities.value[0];
+    if (firstFacility) {
+      selectedFacility.value = firstFacility;
+      await loadReservationsForFacility(firstFacility.id);
+      await loadDowntimesForFacility(firstFacility.id);
     }
   }
 });
@@ -324,6 +346,7 @@ async function loadReservationsForFacility(facilityId: string) {
       const data: ReservationDto[] = await response.json();
       reservations.value = data.map(r => ({
         id: r.id,
+        userId: r.userId,
         facilityId: r.facilityId,
         facilityName: facilities.value.find(f => f.id === r.facilityId)?.name || 'Unknown',
         date: formatDate(r.startAt),
@@ -368,7 +391,7 @@ async function loadCurrentUserReservations() {
       
       // Update isCurrentUser for all reservations
       reservations.value.forEach(r => {
-        r.isCurrentUser = r.facilityId === user.id;
+        r.isCurrentUser = r.userId === user.id;
       });
       weekDays.value = getWeekDays();
     }
@@ -379,9 +402,14 @@ async function loadCurrentUserReservations() {
 
 
 async function cancelReservation(id: string) {
+  const reservation = reservations.value.find(r => r.id === id);
+  if (!reservation || !canCancelReservation(reservation)) {
+    return;
+  }
+
   try {
-    const response = await secureFetch(`${API_URL}/Reservation/${id}/cancel`, {
-      method: 'POST'
+    const response = await secureFetch(`${API_URL}/Reservation/${id}`, {
+      method: 'DELETE'
     });
     if (response.ok) {
       const index = reservations.value.findIndex(r => r.id === id);
@@ -402,6 +430,7 @@ function createReservation() {
 
   const newReservation: Reservation = {
     id: String(reservations.value.length + 1),
+    userId: currentUserId.value || '',
     facilityId: selectedFacility.value.id,
     facilityName: selectedFacility.value.name,
     date: selectedDate.value,
@@ -435,15 +464,50 @@ async function selectFacility(facility: Facility) {
 function goToFacilityDetail(facilityId: string | undefined) {
   // Navigate to facility detail page using router
   if (!facilityId) return;
+  const facility = facilities.value.find(f => f.id === facilityId);
   const router = useRouter();
   if (router) {
-    router.push({ name: 'areal-detail', params: { id: facilityId } });
+    router.push({
+      name: 'areal-detail',
+      params: { id: facilityId },
+      query: facility
+        ? {
+            name: facility.name,
+            type: facility.type?.name || '',
+            description: facility.type?.description || '',
+            capacity: String(facility.capacity),
+            pricePerHour: String(facility.pricePerHour),
+            image: facility.image || ''
+          }
+        : undefined
+    });
   }
 }
 
 function getMinDate() {
   const today = new Date();
   return today.toISOString().split('T')[0];
+}
+
+function startOfToday(): Date {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function startOfTomorrow(): Date {
+  const tomorrow = startOfToday();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow;
+}
+
+function canCancelReservation(reservation: Reservation): boolean {
+  if (!reservation.isCurrentUser || reservation.status !== 'active') {
+    return false;
+  }
+
+  const reservationStart = new Date(reservation.startAt);
+  return reservationStart >= startOfTomorrow();
 }
 
 function calculatePrice() {
@@ -453,7 +517,6 @@ function calculatePrice() {
 
 function getWeekDays(): CalendarDay[] {
   const days = [];
-  const dayNames = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
   const weekRange = buildDayRange(currentWeekStart.value, 7);
   
   for (let i = 0; i < weekRange.length; i++) {
@@ -502,7 +565,7 @@ function getWeekDays(): CalendarDay[] {
     
     days.push({
       date: dateStr,
-      name: dayNames[i] || '',
+      name: weekdayNames[(date.getDay() + 6) % 7] || '',
       slots
     });
   }
@@ -539,6 +602,19 @@ function nextWeek() {
 }
 
 function toggleSlot(date: string, time: string) {
+  const [hour, minute] = time.split(':').map(Number);
+  const parts = date.split('.').map(part => parseInt(part, 10));
+  const day = parts[0];
+  const month = parts[1];
+  const year = parts[2];
+
+  if (day && month && year && hour !== undefined && minute !== undefined) {
+    const slotDateTime = new Date(year, month - 1, day, hour, minute);
+    if (slotDateTime < new Date()) {
+      return;
+    }
+  }
+
   const slotIndex = selectedSlots.value.findIndex(slot => slot.date === date && slot.time === time);
   
   // Check if this slot is occupied by any user (current or other)
@@ -549,7 +625,7 @@ function toggleSlot(date: string, time: string) {
   );
   
   if (occupiedReservation) {
-    if (occupiedReservation.isCurrentUser) {
+    if (occupiedReservation.isCurrentUser && canCancelReservation(occupiedReservation)) {
       // Cancel the current user's reservation
       cancelReservation(occupiedReservation.id);
     }
@@ -603,6 +679,7 @@ async function confirmReservation() {
         const facility = facilities.value.find(f => f.id === newReservation.facilityId);
         reservations.value.unshift({
           id: newReservation.id,
+          userId: newReservation.userId,
           facilityId: newReservation.facilityId,
           facilityName: facility?.name || 'Unknown',
           date: formatDate(newReservation.startAt),
@@ -696,6 +773,14 @@ function navigateToReservation(reservation: Reservation) {
     highlightedSlot.value = null;
   }, 5000);
 }
+
+const canCancelById = computed(() => {
+  const mapped = new Map<string, boolean>();
+  reservations.value.forEach(r => {
+    mapped.set(r.id, canCancelReservation(r));
+  });
+  return mapped;
+});
 </script>
 
 <template>
@@ -848,7 +933,12 @@ function navigateToReservation(reservation: Reservation) {
                 <button @click="navigateToReservation(reservation)" class="navigate-button">
                   Zobrazit v kalendáři
                 </button>
-                <button @click="cancelReservation(reservation.id)" class="cancel-button">
+                <button
+                  @click="cancelReservation(reservation.id)"
+                  class="cancel-button"
+                  :disabled="!canCancelById.get(reservation.id)"
+                  :title="canCancelById.get(reservation.id) ? '' : 'Rezervaci lze zrušit nejpozději den předem.'"
+                >
                   Zrušit
                 </button>
               </div>
