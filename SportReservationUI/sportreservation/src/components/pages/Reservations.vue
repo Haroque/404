@@ -2,7 +2,7 @@
 import '@/assets/main.css';
 import NavBar from "../views/NavBar.vue";
 import { ref, computed, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { API_URL, secureFetch } from '../../auth';
 import type { FacilityComplexDto, ReservationDto, DowntimeDto, CreateReservationDto } from '../../lib/sportApi';
 import { formatDate, formatDateTime, buildDayRange, startOfDay, addHours, toIsoLocal, overlaps } from '../../lib/sportApi';
@@ -111,6 +111,7 @@ const selectedSlots = ref<Array<{date: string, time: string}>>([]);
 const hours = ref([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 const reservationFilterDate = ref('');
 const highlightedSlot = ref<{date: string, time: string} | null>(null);
+const showFacilityDetailModal = ref(false);
 
 // Computed property for filtered reservations
 const filteredReservations = computed(() => {
@@ -324,16 +325,7 @@ onMounted(async () => {
       selectedFacility.value = facility;
       await loadReservationsForFacility(facilityId);
       await loadDowntimesForFacility(facilityId);
-      return;
-    }
-  }
-
-  if (!selectedFacility.value && facilities.value.length > 0) {
-    const firstFacility = facilities.value[0];
-    if (firstFacility) {
-      selectedFacility.value = firstFacility;
-      await loadReservationsForFacility(firstFacility.id);
-      await loadDowntimesForFacility(firstFacility.id);
+      await loadCurrentUserReservations();
     }
   }
 });
@@ -462,26 +454,12 @@ async function selectFacility(facility: Facility) {
 }
 
 function goToFacilityDetail(facilityId: string | undefined) {
-  // Navigate to facility detail page using router
-  if (!facilityId) return;
-  const facility = facilities.value.find(f => f.id === facilityId);
-  const router = useRouter();
-  if (router) {
-    router.push({
-      name: 'areal-detail',
-      params: { id: facilityId },
-      query: facility
-        ? {
-            name: facility.name,
-            type: facility.type?.name || '',
-            description: facility.type?.description || '',
-            capacity: String(facility.capacity),
-            pricePerHour: String(facility.pricePerHour),
-            image: facility.image || ''
-          }
-        : undefined
-    });
-  }
+  if (!facilityId || !selectedFacility.value) return;
+  showFacilityDetailModal.value = true;
+}
+
+function closeFacilityDetail() {
+  showFacilityDetailModal.value = false;
 }
 
 function getMinDate() {
@@ -816,6 +794,42 @@ const canCancelById = computed(() => {
               Detail sportoviště →
             </button>
           </div>
+
+
+          <div v-if="showFacilityDetailModal && selectedFacility" class="facility-detail-modal-backdrop" @click.self="closeFacilityDetail">
+            <div class="facility-detail-modal facility-detail-modal--large colorful-modal">
+              <div class="facility-modal-header">
+                <span class="facility-modal-icon">{{ selectedFacility.image }}</span>
+                <span class="facility-modal-title">{{ selectedFacility.name }}</span>
+              </div>
+              <div class="facility-modal-row">
+                <span class="facility-modal-label"><span class="emoji">🏷️</span> Typ:</span>
+                <span class="facility-modal-value">{{ selectedFacility.type?.name || 'Neuvedeno' }}</span>
+              </div>
+              <div class="facility-modal-row">
+                <span class="facility-modal-label"><span class="emoji">💸</span> Cena:</span>
+                <span class="facility-modal-value price">{{ selectedFacility.pricePerHour }} Kč / hod</span>
+              </div>
+              <div class="facility-modal-row">
+                <span class="facility-modal-label"><span class="emoji">👥</span> Kapacita:</span>
+                <span class="facility-modal-value">{{ selectedFacility.capacity }} osob</span>
+              </div>
+              <div class="facility-modal-row">
+                <span class="facility-modal-label"><span class="emoji">📶</span> Dostupnost:</span>
+                <span class="facility-modal-value" :class="{ open: selectedFacility.isActive, closed: !selectedFacility.isActive }">
+                  {{ selectedFacility.isActive ? 'Otevřeno pro rezervace' : 'Momentálně nedostupné' }}
+                </span>
+              </div>
+              <div class="facility-modal-description">
+                <span class="facility-modal-label"><span class="emoji">📝</span> Popis:</span>
+                <span class="facility-modal-value description">{{ selectedFacility.type?.description || 'Bez popisu' }}</span>
+              </div>
+              <div class="facility-detail-actions">
+                <button @click="closeFacilityDetail" class="facility-close-button">Zavřít</button>
+              </div>
+            </div>
+          </div>
+
           <div v-if="!isLoadingFacilities && facilities.length === 0" class="error-message-box" style="margin-bottom: 2rem;">
             💡 <strong>Nemám přístup k sportoviště.</strong> Zkontrolujte prosím:
             <ul style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
@@ -1714,6 +1728,153 @@ const canCancelById = computed(() => {
   border: none;
 }
 
+.facility-detail-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 1rem;
+}
+
+
+.facility-detail-modal {
+  width: min(720px, 100%);
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid var(--vt-c-divider);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.facility-detail-modal--large.colorful-modal {
+  width: min(480px, 98vw);
+  background: linear-gradient(135deg, #f8fafc 60%, #e0e7ff 100%);
+  border-radius: 1.5rem;
+  padding: 2.5rem 2.5rem 2rem 2.5rem;
+  box-shadow: 0 24px 80px rgba(80, 80, 160, 0.18);
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  align-items: stretch;
+}
+
+.facility-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+.facility-modal-icon {
+  font-size: 3.5rem;
+  background: white;
+  border-radius: 1.2rem;
+  box-shadow: 0 2px 12px rgba(80,80,160,0.10);
+  padding: 0.5rem 1.2rem;
+}
+.facility-modal-title {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: #2d2d4d;
+  letter-spacing: -1px;
+}
+.facility-modal-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 1.13rem;
+}
+.facility-modal-label {
+  font-weight: 600;
+  color: #4b5563;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.facility-modal-value {
+  color: #22223b;
+  font-weight: 500;
+}
+.facility-modal-value.price {
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 1.18rem;
+}
+.facility-modal-value.open {
+  color: #059669;
+  font-weight: 700;
+}
+.facility-modal-value.closed {
+  color: #dc2626;
+  font-weight: 700;
+}
+.facility-modal-description {
+  margin-top: 1.2rem;
+  background: rgba(255,255,255,0.7);
+  border-radius: 0.8rem;
+  padding: 1.1rem 1.2rem;
+  font-size: 1.08rem;
+  box-shadow: 0 1px 6px rgba(80,80,160,0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.facility-modal-value.description {
+  color: #374151;
+  font-size: 1.08rem;
+  margin-top: 0.2rem;
+}
+.emoji {
+  font-size: 1.1em;
+  margin-right: 0.2em;
+}
+
+.facility-detail-modal h3 {
+  margin-bottom: 1rem;
+  font-size: 1.4rem;
+  color: var(--color-heading);
+}
+
+.facility-detail-grid {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 0.75rem 1rem;
+}
+
+.facility-detail-label {
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.facility-detail-value {
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.facility-detail-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.facility-close-button {
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.7rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.facility-close-button {
+  background: var(--vt-c-white-soft);
+  color: var(--color-text);
+}
+
 .error-message-box {
   color: #F44336;
   font-size: 0.95rem;
@@ -1854,6 +2015,10 @@ const canCancelById = computed(() => {
     flex-direction: column;
     align-items: stretch;
     gap: 1rem;
+  }
+
+  .facility-detail-grid {
+    grid-template-columns: 1fr;
   }
   
   .detail-button {
