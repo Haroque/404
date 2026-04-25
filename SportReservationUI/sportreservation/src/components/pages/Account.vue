@@ -110,6 +110,7 @@ async function saveProfile() {
     saveSuccess.value = false;
     
     const patchDto: UserPatchDto = {
+      id: profile.value?.id,
       fullName: editProfile.value.fullName !== profile.value?.fullName ? editProfile.value.fullName : undefined,
       email: editProfile.value.email !== profile.value?.email ? editProfile.value.email : undefined
     };
@@ -130,7 +131,7 @@ async function saveProfile() {
       };
     }
     
-    const response = await secureFetch(`${API_URL}/User/${profile.value?.id}`, {
+    const response = await secureFetch(`${API_URL}/User`, {
       method: 'PATCH',
       body: JSON.stringify(patchDto)
     });
