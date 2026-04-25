@@ -36,8 +36,8 @@ async function loadFacilities() {
 
 async function loadFacilityTypes() {
   try {
-    console.log('Loading facility types from:', `${API_URL}/FacilityType`)
-    const response = await secureFetch(`${API_URL}/FacilityType`)
+    console.log('Loading facility types from:', `${API_URL}/Facility/Type`)
+    const response = await secureFetch(`${API_URL}/Facility/Type`)
     console.log('Facility types response status:', response.status)
     if (response.ok) {
       const data = await response.json()

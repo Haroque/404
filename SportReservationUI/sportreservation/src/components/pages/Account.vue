@@ -24,7 +24,6 @@ interface UserReservation {
   status: 'active' | 'cancelled';
 }
 
-const router = useRouter();
 const profile = ref<UserProfile | null>(null);
 const reservations = ref<UserReservation[]>([]);
 const isLoading = ref(false);
