@@ -12,6 +12,8 @@ interface CalendarSlot {
   occupied: boolean;
   selected: boolean;
   isCurrentUser?: boolean;
+  isOtherUser?: boolean;
+  isDowntime?: boolean;
   highlighted?: boolean;
 }
 
@@ -350,6 +352,8 @@ async function loadReservationsForFacility(facilityId: string) {
         startAt: r.startAt,
         endAt: r.endAt
       }));
+      // Výpis všech rezervací pro kontrolu
+      console.log('RESERVATIONS FOR FACILITY', facilityId, JSON.stringify(reservations.value, null, 2));
       weekDays.value = getWeekDays();
     }
   } catch (error) {
@@ -513,13 +517,11 @@ function getWeekDays(): CalendarDay[] {
       const occupiedReservation = reservations.value.find(reservation => {
         if (reservation.status === 'cancelled') return false;
         if (selectedFacility.value && reservation.facilityId !== selectedFacility.value.id) return false;
-        
         const reservationStart = new Date(reservation.startAt);
         const reservationEnd = new Date(reservation.endAt);
-        
         return overlaps(slotStart, slotEnd, reservationStart, reservationEnd);
       });
-      
+
       // Check if this slot is in a downtime (closed)
       const isClosed = downtimes.value.some((downtime: DowntimeDto) => {
         if (selectedFacility.value && downtime.facilityId !== selectedFacility.value.id) return false;
@@ -527,16 +529,18 @@ function getWeekDays(): CalendarDay[] {
         const downtimeEnd = new Date(downtime.endAt);
         return overlaps(slotStart, slotEnd, downtimeStart, downtimeEnd);
       });
-      
+
       const isOccupied = !!occupiedReservation || isClosed;
       const isSelected = selectedSlots.value.some(slot => slot.date === dateStr && slot.time === timeStr);
       const isHighlighted = highlightedSlot.value?.date === dateStr && highlightedSlot.value?.time === timeStr;
-      
+
       slots.push({
         time: timeStr,
         occupied: isOccupied,
         selected: isSelected,
         isCurrentUser: occupiedReservation?.isCurrentUser || false,
+        isOtherUser: !!occupiedReservation && !occupiedReservation.isCurrentUser,
+        isDowntime: isClosed,
         highlighted: isHighlighted
       });
     });
@@ -877,15 +881,27 @@ const canCancelById = computed(() => {
                 <div 
                   v-for="slot in day.slots"
                   :key="slot.time"
-                  :class="['calendar-slot', { occupied: slot.occupied, free: !slot.occupied, selected: slot.selected, 'current-user': slot.isCurrentUser, 'confirmed-reservation': slot.occupied && slot.isCurrentUser, highlighted: slot.highlighted }]"
-                  @click="toggleSlot(day.date, slot.time)"
+                  :class="[
+                    'calendar-slot',
+                    { 
+                      'occupied': slot.occupied,
+                      'free': !slot.occupied,
+                      'selected': slot.selected,
+                      'current-user': slot.isCurrentUser,
+                      'other-user': slot.isOtherUser,
+                      'downtime': slot.isDowntime,
+                      'highlighted': slot.highlighted
+                    }
+                  ]"
+                  @click="!slot.isOtherUser && !slot.isDowntime ? toggleSlot(day.date, slot.time) : null"
                 ></div>
               </div>
               </div>
             </div>
             <div class="legend">
-              <div class="legend-item"><span class="color-box occupied"></span> Obsazeno ostatními</div>
+              <div class="legend-item"><span class="color-box occupied other-user"></span> Obsazeno ostatními</div>
               <div class="legend-item"><span class="color-box occupied current-user"></span> Vaše rezervace</div>
+              <div class="legend-item"><span class="color-box downtime"></span> Údržba</div>
               <div class="legend-item"><span class="color-box free"></span> Volné</div>
               <div class="legend-item"><span class="color-box selected"></span> Vámi vybrané</div>
               <div class="legend-item"><span class="color-box highlighted"></span> Zvýrazněná rezervace</div>
@@ -1294,13 +1310,13 @@ const canCancelById = computed(() => {
   box-shadow: inset 0 0 0 2px var(--vt-c-yellow);
 }
 
-.calendar-slot.occupied:not(.current-user) {
+
+.calendar-slot.occupied.other-user {
   background-color: #FF5252;
   cursor: not-allowed;
   position: relative;
 }
-
-.calendar-slot.occupied:not(.current-user)::after {
+.calendar-slot.occupied.other-user::after {
   content: '×';
   position: absolute;
   top: 50%;
@@ -1308,6 +1324,22 @@ const canCancelById = computed(() => {
   transform: translate(-50%, -50%);
   color: white;
   font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.calendar-slot.downtime {
+  background-color: #BDBDBD !important;
+  cursor: not-allowed;
+  position: relative;
+}
+.calendar-slot.downtime::after {
+  content: '🛠';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 1.3rem;
   font-weight: bold;
 }
 
@@ -1563,13 +1595,27 @@ const canCancelById = computed(() => {
   border: 2px solid var(--vt-c-divider);
 }
 
-.color-box.occupied {
+
+.color-box.occupied.other-user {
   background-color: #FF5252;
   position: relative;
 }
-
-.color-box.occupied::after {
+.color-box.occupied.other-user::after {
   content: '×';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+.color-box.downtime {
+  background-color: #BDBDBD;
+  position: relative;
+}
+.color-box.downtime::after {
+  content: '🛠';
   position: absolute;
   top: 50%;
   left: 50%;

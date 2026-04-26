@@ -29,6 +29,7 @@ public class PriceListController(PriceListService priceService) : ControllerBase
     }
     
     
+    
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] PriceListCreateDto dto)
     {

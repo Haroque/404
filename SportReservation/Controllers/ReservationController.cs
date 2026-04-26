@@ -37,13 +37,14 @@ public class ReservationController : ControllerBase
 
         Guid? effectiveUserId = userId;
 
-        if (loggedUser.Role != UserRole.Admin)
+        // Pokud je zadán user_id a není admin, povol pouze vlastní rezervace
+        if (userId.HasValue && loggedUser.Role != UserRole.Admin)
         {
-            if (userId.HasValue && userId.Value != loggedUser.Id)
+            if (userId.Value != loggedUser.Id)
                 return StatusCode(StatusCodes.Status403Forbidden, "forbidden");
-
             effectiveUserId = loggedUser.Id;
         }
+        // Pokud není zadán user_id, nech effectiveUserId null a filtruj pouze podle facilityId (všichni uživatelé)
 
         var list = await _svc.GetReservationsAsync(effectiveUserId, facilityId, active);
         var dtos = list.Select(r => r.ToDto());
