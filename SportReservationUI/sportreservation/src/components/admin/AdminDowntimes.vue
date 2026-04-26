@@ -3,9 +3,22 @@ import {secureFetch} from "@/auth.ts";
 import {onMounted, ref} from "vue";
 import {Form, required} from "@/form.ts";
 
-const downtimes = ref([])
-const knownFacilities = ref([])
-const facilityId = ref("")
+interface Facility {
+  id: string;
+  name: string;
+}
+
+interface Downtime {
+  id: string;
+  startAt: string;
+  endAt: string;
+  reason: string;
+  facilityId: string;
+}
+
+const downtimes = ref<Downtime[]>([])
+const knownFacilities = ref<Facility[]>([])
+const facilityId = ref<string | null>(null)
 
 onMounted(async () => {
   knownFacilities.value = await fetchAllFacilities()
@@ -19,11 +32,15 @@ async function fetchAllFacilities() {
 }
 
 async function reloadDowntimes() {
+  if (!facilityId.value) {
+    downtimes.value = []
+    return
+  }
   downtimes.value = await secureFetch("/Downtime/facility/" + facilityId.value).then(it => it.json())
 }
 
 class AddForm extends Form {
-  period = []
+  period: Date[] = []
   reason = ""
 
   onClear(): void {
@@ -41,7 +58,7 @@ class AddForm extends Form {
       body: JSON.stringify({
         facilityId: facilityId.value,
         startAt: this.period[0],
-        endAt: this.period[this.period.length - 1],
+        endAt: this.period[1] ?? this.period[0],
         reason: this.reason
       })
     })
@@ -59,13 +76,13 @@ class AddForm extends Form {
 
 class DelForm extends Form {
 
-  downtime = {}
+  downtime: Partial<Downtime> = {}
 
   onClear(): void {
     this.downtime = {}
   }
 
-  async onOpen(data: any): Promise<void> {
+  async onOpen(data: Downtime): Promise<void> {
     this.downtime = data
   }
 
@@ -74,7 +91,7 @@ class DelForm extends Form {
   }
 
   async onPost(): Promise<boolean> {
-    const result = await secureFetch("/Downtime/" + this.downtime.id, {
+    const result = await secureFetch("/Downtime/" + this.downtime.id!, {
       method: "DELETE"
     })
     if (result.ok) {
@@ -91,15 +108,15 @@ class DelForm extends Form {
 
 class EditForm extends Form {
 
-  downtime = {}
-  period = []
+  downtime: Partial<Downtime> = {}
+  period: (string | Date)[] = []
 
   onClear(): void {
     this.downtime = {}
-    this.perid = []
+    this.period = []
   }
 
-  async onOpen(data: any): Promise<void> {
+  async onOpen(data: Downtime): Promise<void> {
     this.downtime = data
     this.period = [data.startAt, data.endAt]
   }
@@ -109,12 +126,12 @@ class EditForm extends Form {
   }
 
   async onPost(): Promise<boolean> {
-    const result = await secureFetch("/Downtime/" + this.downtime.id, {
+    const result = await secureFetch("/Downtime/" + this.downtime.id!, {
       method: "PATCH",
       body: JSON.stringify({
         facilityId: this.downtime.facilityId,
         startAt: this.period[0],
-        endAt: this.period[this.period.length - 1],
+        endAt: this.period[1] ?? this.period[0],
         reason: this.downtime.reason
       })
     })
@@ -249,12 +266,13 @@ const editForm = ref(new EditForm())
         label="Sportoviště"
         v-model="facilityId"
         :items="knownFacilities"
+        clearable
         @update:modelValue="reloadDowntimes()"
         item-title="name"
         item-value="id"
         style="margin-left: 60%; margin-right: 2%"
     />
-    <v-btn icon="mdi-plus" @click="addForm.open()"/>
+    <v-btn icon="mdi-plus" @click="addForm.open()" :disabled="!facilityId"/>
   </div>
 
   <v-card>
@@ -269,8 +287,8 @@ const editForm = ref(new EditForm())
       </thead>
       <tbody>
       <tr v-for="downtime in downtimes">
-        <td>{{ downtime.startAt }}</td>
-        <td>{{ downtime.endAt }}</td>
+        <td>{{ new Date(downtime.startAt).toLocaleString('cs-CZ') }}</td>
+        <td>{{ new Date(downtime.endAt).toLocaleString('cs-CZ') }}</td>
         <td>{{ downtime.reason }}</td>
         <td class="text-right">
           <v-btn icon="mdi-pencil" @click="editForm.open(downtime)"/>

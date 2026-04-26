@@ -366,7 +366,7 @@ async function loadReservationsForFacility(facilityId: string) {
 async function loadDowntimesForFacility(facilityId: string) {
   try {
     isLoadingDowntimes.value = true;
-    const response = await secureFetch(`${API_URL}/Downtime?facility_id=${facilityId}`);
+    const response = await secureFetch(`/Downtime/facility/${facilityId}`);
     if (response.ok) {
       downtimes.value = await response.json();
       weekDays.value = getWeekDays();
