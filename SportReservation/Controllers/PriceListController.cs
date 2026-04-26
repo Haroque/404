@@ -28,6 +28,7 @@ public class PriceListController(PriceListService priceService) : ControllerBase
         return Ok(prices.Select(p => p.ToDto()));
     }
     
+    
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] PriceListCreateDto dto)
     {
