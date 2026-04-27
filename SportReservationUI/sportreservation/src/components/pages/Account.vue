@@ -2,7 +2,6 @@
 import '@/assets/main.css';
 import NavBar from "../views/NavBar.vue";
 import { ref, onMounted } from 'vue';
-import { useRouter } from '@/router';
 import { API_URL, secureFetch, logout } from '../../auth';
 import type { UserDto, ReservationDto, UserPatchDto, UserPatchPasswordDto } from '../../lib/sportApi';
 import { formatDate, formatDateTime } from '../../lib/sportApi';
@@ -255,7 +254,7 @@ onMounted(() => {
         <div v-else class="reservation-cards">
           <div v-for="reservation in reservations" :key="reservation.id" class="reservation-card">
             <div class="card-header">
-              <h4 class="facility-name">Rezervace #{{ reservation.id }}</h4>
+              <h4 class="facility-name">Rezervace</h4>
               <span class="status-badge" :class="reservation.status">
                 {{ reservation.status === 'active' ? 'Aktivní' : 'Zrušená' }}
               </span>
@@ -273,6 +272,9 @@ onMounted(() => {
               <div class="detail-row">
                 <span class="detail-icon">💰</span>
                 <span class="detail-text">{{ reservation.price }} Kč</span>
+              </div>
+              <div class="detail-row">
+                <h6>ID rezervace: {{ reservation.id }}</h6>
               </div>
             </div>
           </div>
@@ -449,7 +451,6 @@ onMounted(() => {
 }
 
 .password-section {
-  margin-top: 2rem;
   padding-top: 2rem;
   border-top: 1px solid var(--vt-c-divider);
 }
