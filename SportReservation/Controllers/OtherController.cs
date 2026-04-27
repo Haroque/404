@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportReservation.Data;
+using SportReservation.Middlewares;
+using SportReservation.Models;
 
 namespace SportReservation.Controllers;
 
@@ -11,6 +13,10 @@ public class OtherController(AppDbContext db) : ControllerBase
     [HttpGet("Dashboard")]
     public async Task<IActionResult> GetDashboardStats()
     {
+        if (HttpContext.LoggedUser().Role != UserRole.Admin)
+        {
+            throw new BadHttpRequestException("forbidden", StatusCodes.Status403Forbidden);
+        }
         var lastWeek = DateTime.UtcNow.AddDays(-7);
 
         var recentUsers = await db.Users
