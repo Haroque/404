@@ -904,7 +904,6 @@ const canCancelById = computed(() => {
               <div class="legend-item"><span class="color-box downtime"></span> Údržba</div>
               <div class="legend-item"><span class="color-box free"></span> Volné</div>
               <div class="legend-item"><span class="color-box selected"></span> Vámi vybrané</div>
-              <div class="legend-item"><span class="color-box highlighted"></span> Zvýrazněná rezervace</div>
             </div>
             <div class="selected-summary" v-if="selectedSlots.length > 0">
               <h4>Vybrané sloty: {{ selectedSlots.length }}</h4>
